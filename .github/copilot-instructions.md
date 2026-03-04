@@ -82,3 +82,22 @@ Status colours:
 - Do not write raw SQL in application code — use the Supabase query builder
 - Do not add `console.log` in production paths — use structured error handling
 - Do not skip the `.error` check from Supabase responses
+
+## Migrations — Critical Notes
+
+Connection string has special characters that break standard URL parsers. Never use `supabase db push` directly.
+Use the Node pg script documented in CLAUDE.md under "Migrations — How to Apply".
+
+After any schema change:
+1. Create migration file in `supabase/migrations/<timestamp>_description.sql`
+2. Apply via the Node pg script
+3. Run `npx supabase gen types typescript --linked > src/lib/database.types.ts`
+4. Rebuild the app (NEXT_PUBLIC_* vars must be present at build time)
+
+## Build Process
+
+Always build with env vars:
+```bash
+NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
+```
+Then restart the systemd service: `systemctl --user restart command-center`

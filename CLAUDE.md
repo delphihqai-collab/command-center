@@ -131,3 +131,70 @@ npx supabase gen types typescript --linked > src/lib/database.types.ts
 ```
 
 Access: `http://localhost:9069` (via SSH tunnel) or `http://hermes.tail280e9c.ts.net:9069` (via Tailscale)
+
+---
+
+## Migrations — How to Apply
+
+The connection string has special characters that break standard URL parsers. Use the Node.js `pg` script below instead of `supabase db push`.
+
+**Apply all migrations from scratch:**
+```bash
+cd /tmp && npm install pg 2>/dev/null
+node << 'SCRIPT'
+const { Client } = require('pg');
+const fs = require('fs');
+
+// Parse connection string safely (handles special chars in password)
+const cs = process.env.SUPABASE_CONNECTION_STRING;
+const at = cs.lastIndexOf('@');
+const credPart = cs.slice(cs.indexOf('//') + 2, at);
+const colonIdx = credPart.indexOf(':');
+const user = credPart.slice(0, colonIdx);
+const password = credPart.slice(colonIdx + 1);
+const rest = cs.slice(at + 1);
+const colonIdx2 = rest.lastIndexOf(':');
+const host = rest.slice(0, colonIdx2);
+const portDb = rest.slice(colonIdx2 + 1);
+const port = parseInt(portDb.split('/')[0]);
+const database = portDb.split('/')[1];
+
+const client = new Client({ user, password, host, port, database, ssl: { rejectUnauthorized: false } });
+async function run() {
+  await client.connect();
+  const files = [
+    'supabase/migrations/20260304000001_foundation.sql',
+    'supabase/migrations/20260304000002_commercial.sql', 
+    'supabase/migrations/20260304000003_rls.sql',
+    'supabase/seed.sql',
+  ];
+  for (const f of files) {
+    console.log('Applying:', f);
+    await client.query(fs.readFileSync(f, 'utf8'));
+    console.log('  ✓');
+  }
+  await client.end();
+  console.log('Done.');
+}
+run().catch(e => { console.error(e.message); process.exit(1); });
+SCRIPT
+```
+
+After applying migrations, regenerate types:
+```bash
+npx supabase gen types typescript --linked > src/lib/database.types.ts
+```
+
+## Build — Important
+
+`NEXT_PUBLIC_*` env vars are **baked at build time**. Always build with env vars set:
+```bash
+NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
+```
+
+The systemd service injects runtime env vars for server-side code, but the public vars must be present at build time.
+
+## Credentials
+- Supabase URL and keys: stored in OpenClaw env block (`~/.openclaw/openclaw.json`)
+- `.env.local`: populated from OpenClaw env vars at setup time
+- Auth user: `delphihq.ai@gmail.com` — password matches Supabase DB password
