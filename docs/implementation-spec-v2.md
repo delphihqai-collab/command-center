@@ -1,3 +1,5 @@
+# [ARCHIVED — See implementation-spec-v4.md]
+
 # Command Center V2 — Implementation Specification
 
 **Version:** 2.0  

@@ -1,3 +1,5 @@
+# [ARCHIVED — See implementation-spec-v4.md]
+
 # Command Center V3 — Preliminary Specification
 
 **Status:** PRELIMINARY — Will be updated after V2 verification  

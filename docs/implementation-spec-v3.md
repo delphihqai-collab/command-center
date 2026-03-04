@@ -1,3 +1,5 @@
+# [ARCHIVED — See implementation-spec-v4.md]
+
 # Command Center — Implementation Spec V3
 
 **Version:** 3.0  
