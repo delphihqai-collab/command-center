@@ -104,52 +104,37 @@ Then restart the systemd service: `systemctl --user restart command-center`
 
 ---
 
-## HERMES Reports
+## HERMES Reports — MANDATORY
 
-After every implementation session, **you must generate a HERMES report** and commit it to the repository.
+Every implementation session **must** end with a HERMES report committed and pushed. No exceptions. The session is **not complete** until this is done.
 
 ### Report Location & Naming
 - Directory: `docs/hermes-reports/`
 - File format: `hermes-report-vX.md` (increment version number from previous report)
-- Example: `hermes-report-v1.md`, `hermes-report-v2.md`, etc.
+- Check existing reports first: `ls docs/hermes-reports/` to determine the next version
 
 ### Report Structure
 Each report must include:
 
-1. **Version & Metadata**
-   - Version number (e.g., v1, v2)
-   - Date completed (YYYY-MM-DD)
-   - Session duration or time spent
-
-2. **What Was Implemented**
-   - High-level summary of the work completed
-   - Features added, bugs fixed, or improvements made
-   - Link to relevant commits
-
-3. **Files Changed**
-   - List of modified files with brief description of changes
-   - Example: `src/app/(app)/pipeline/page.tsx — added lead count widget`
-
-4. **Issues Found**
-   - Any bugs, edge cases, or problems discovered during implementation
-   - Any workarounds applied
-   - Known limitations
-
-5. **What to Validate Next**
-   - Testing checkpoints for the work completed
-   - Recommended validation steps
-   - Blockers or dependencies to watch for
-
-### How to Generate
-After completing any implementation:
-1. Document the session in the format above
-2. Save as `docs/hermes-reports/hermes-report-vX.md` (increment X from the last report)
-3. Commit with message: `docs: hermes report v<X> — <one-line summary>`
-4. Push to main
+1. **Version & Metadata** — version number, date (YYYY-MM-DD), scope
+2. **What Was Implemented** — summary of work, features added, bugs fixed
+3. **Files Changed** — list of new/modified files with brief descriptions
+4. **Issues Found** — bugs, workarounds, limitations discovered
+5. **What to Validate Next** — testing checkpoints, recommended validation steps
 
 ### Purpose
-These reports maintain a continuous audit trail of all implementation work on Command Center. They serve as:
-- Historical record for Delphi leadership
-- Quick reference for understanding what changed and why
-- Validation checklist for QA and deployment
-- Knowledge base for future context
+These reports are Delphi's continuous audit trail. They serve as historical record, deployment checklist, and knowledge base.
+
+---
+
+## Session Completion Protocol — MANDATORY
+
+Before ending ANY implementation session, you MUST complete this checklist in order:
+
+1. **Build passes** — run `next build` and confirm zero errors
+2. **HERMES report created** — `docs/hermes-reports/hermes-report-vX.md` with all 5 sections
+3. **Git commit** — `git add -A && git commit -m "docs: hermes report vX — <summary>"`
+4. **Git push** — `git push`
+5. **Service restart** (if code changed) — `systemctl --user restart command-center`
+
+⚠️ If you skip any of these steps, the session is considered incomplete. Always check `ls docs/hermes-reports/` at the start of a session to know the current version number.
