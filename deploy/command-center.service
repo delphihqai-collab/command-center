@@ -1,0 +1,15 @@
+[Unit]
+Description=Command Center — Delphi Backoffice (Next.js)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/delphi/Documents/code/command-center
+ExecStart=/usr/bin/node /home/delphi/Documents/code/command-center/node_modules/.bin/next start --port 9069
+Restart=on-failure
+RestartSec=5
+Environment=NODE_ENV=production
+EnvironmentFile=/home/delphi/Documents/code/command-center/.env.local
+
+[Install]
+WantedBy=default.target
