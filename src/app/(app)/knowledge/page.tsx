@@ -8,6 +8,8 @@ import { format } from "date-fns";
 import { KnowledgeSearch } from "./_components/knowledge-search";
 import { LoadMoreButton } from "@/components/load-more-button";
 import { decodeCursor, encodeCursor, PAGE_SIZE } from "@/lib/pagination";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
 interface Props {
   searchParams: Promise<{ q?: string; cursor?: string }>;
@@ -294,8 +296,14 @@ export default async function KnowledgePage({ searchParams }: Props) {
 
   return (
     <div className="space-y-4">
-      <div>
+      <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-zinc-50">Knowledge Base</h1>
+        <Link
+          href="/knowledge/new"
+          className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+        >
+          <Plus className="h-4 w-4" /> New Entry
+        </Link>
       </div>
 
       <Suspense>

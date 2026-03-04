@@ -11,7 +11,11 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
+import { AlertTriangle, Clock, ShieldAlert } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { HealthTrendChart } from "./_components/health-trend-chart";
+import { ClientNotes } from "./_components/client-notes";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -37,7 +41,7 @@ export default async function ClientDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [clientRes, healthRes, invoicesRes, reportsRes] = await Promise.all([
+  const [clientRes, healthRes, invoicesRes, reportsRes, notesRes] = await Promise.all([
     supabase
       .from("clients")
       .select("*, agents!clients_assigned_am_id_fkey(name)")
@@ -61,6 +65,12 @@ export default async function ClientDetailPage({ params }: Props) {
       .eq("related_entity_id", id)
       .order("created_at", { ascending: false })
       .limit(10),
+    supabase
+      .from("client_notes")
+      .select("*")
+      .eq("client_id", id)
+      .order("created_at", { ascending: false })
+      .limit(50),
   ]);
 
   if (!clientRes.data) notFound();
@@ -68,7 +78,33 @@ export default async function ClientDetailPage({ params }: Props) {
   const healthHistory = healthRes.data ?? [];
   const invoices = invoicesRes.data ?? [];
   const reports = reportsRes.data ?? [];
+  const notes = notesRes.data ?? [];
   const latestHealth = healthHistory[0];
+
+  // Renewal countdown
+  const daysUntilRenewal = differenceInDays(
+    new Date(client.contract_end),
+    new Date()
+  );
+
+  // Risk flags
+  const riskFlags: string[] = [];
+  const overdueInvoices = invoices.filter((i) => i.status === "overdue");
+  if (overdueInvoices.length > 0) {
+    riskFlags.push(`${overdueInvoices.length} overdue invoice${overdueInvoices.length > 1 ? "s" : ""}`);
+  }
+  if (healthHistory.length >= 2) {
+    const signalScore = (h: typeof healthHistory[0]) => {
+      const s = [h.product_activity_signal, h.invoice_status_signal, h.communication_signal, h.sentiment_signal];
+      return s.reduce((acc, v) => acc + (v === "green" ? 3 : v === "yellow" ? 2 : v === "red" ? 1 : 2), 0);
+    };
+    if (signalScore(healthHistory[0]) < signalScore(healthHistory[1])) {
+      riskFlags.push("Declining health trend");
+    }
+  }
+  if (client.health_status === "at_risk" || client.health_status === "churning") {
+    riskFlags.push("Health status critical");
+  }
 
   return (
     <div className="space-y-6">
@@ -98,6 +134,57 @@ export default async function ClientDetailPage({ params }: Props) {
           </span>
         </div>
       </div>
+
+      {/* Renewal Countdown + Risk Flags */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-zinc-400" />
+              <p className="text-xs text-zinc-400">Renewal In</p>
+            </div>
+            <p
+              className={cn(
+                "mt-1 text-2xl font-bold",
+                daysUntilRenewal <= 0
+                  ? "text-red-400"
+                  : daysUntilRenewal < 30
+                    ? "text-red-400"
+                    : daysUntilRenewal < 60
+                      ? "text-amber-400"
+                      : "text-zinc-50"
+              )}
+            >
+              {daysUntilRenewal <= 0 ? "Expired" : `${daysUntilRenewal}d`}
+            </p>
+            <p className="text-xs text-zinc-500">
+              {format(new Date(client.contract_end), "dd MMM yyyy")}
+            </p>
+          </CardContent>
+        </Card>
+
+        {riskFlags.length > 0 && (
+          <Card className="border-red-900/50 bg-red-950/20">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="h-4 w-4 text-red-400" />
+                <p className="text-xs text-red-400 font-medium">Risk Flags</p>
+              </div>
+              <ul className="mt-2 space-y-1">
+                {riskFlags.map((flag) => (
+                  <li key={flag} className="flex items-center gap-1.5 text-sm text-red-300">
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    {flag}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Health Trend Chart */}
+      <HealthTrendChart history={healthHistory} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Health Signals */}
@@ -253,6 +340,9 @@ export default async function ClientDetailPage({ params }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* Client Notes */}
+      <ClientNotes clientId={id} notes={notes} />
     </div>
   );
 }

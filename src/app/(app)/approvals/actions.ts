@@ -26,7 +26,9 @@ export async function approveAction(
       .update({
         status: "approved",
         decision_at: new Date().toISOString(),
+        decided_at: new Date().toISOString(),
         approved_by_user_id: user.id,
+        decided_by: user.email ?? "boss",
         approval_notes: notes ?? null,
         updated_at: new Date().toISOString(),
       })
@@ -58,7 +60,10 @@ export async function rejectAction(
       .update({
         status: "rejected",
         decision_at: new Date().toISOString(),
+        decided_at: new Date().toISOString(),
         approved_by_user_id: user.id,
+        decided_by: user.email ?? "boss",
+        decision_reason: notes ?? null,
         approval_notes: notes ?? null,
         updated_at: new Date().toISOString(),
       })

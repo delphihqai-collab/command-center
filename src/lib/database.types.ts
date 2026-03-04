@@ -9,6 +9,89 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      alert_events: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          message: string
+          resolved: boolean
+          resolved_at: string | null
+          rule_id: string | null
+          severity: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          message: string
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_id?: string | null
+          severity: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          message?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_id?: string | null
+          severity?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "alert_events_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "alert_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      alert_rules: {
+        Row: {
+          condition_field: string
+          condition_operator: string
+          condition_value: string
+          created_at: string
+          description: string | null
+          enabled: boolean
+          entity_type: string
+          id: string
+          name: string
+          severity: string
+        }
+        Insert: {
+          condition_field: string
+          condition_operator: string
+          condition_value: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          entity_type: string
+          id?: string
+          name: string
+          severity?: string
+        }
+        Update: {
+          condition_field?: string
+          condition_operator?: string
+          condition_value?: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          entity_type?: string
+          id?: string
+          name?: string
+          severity?: string
+        }
+        Relationships: []
+      }
       agent_logs: {
         Row: {
           action: string
@@ -186,7 +269,10 @@ export type Database = {
           context: string | null
           created_at: string
           created_by_agent_id: string | null
+          decided_at: string | null
+          decided_by: string | null
           decision_at: string | null
+          decision_reason: string | null
           discord_message_id: string | null
           draft_content: string | null
           id: string
@@ -212,7 +298,10 @@ export type Database = {
           context?: string | null
           created_at?: string
           created_by_agent_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
           decision_at?: string | null
+          decision_reason?: string | null
           discord_message_id?: string | null
           draft_content?: string | null
           id?: string
@@ -238,7 +327,10 @@ export type Database = {
           context?: string | null
           created_at?: string
           created_by_agent_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
           decision_at?: string | null
+          decision_reason?: string | null
           discord_message_id?: string | null
           draft_content?: string | null
           id?: string
@@ -304,6 +396,50 @@ export type Database = {
           user_email?: string | null
         }
         Relationships: []
+      }
+      calibration_gates: {
+        Row: {
+          agent_id: string
+          completed: boolean
+          completed_at: string | null
+          completed_count: number
+          created_at: string
+          gate_description: string | null
+          gate_name: string
+          id: string
+          required_count: number
+        }
+        Insert: {
+          agent_id: string
+          completed?: boolean
+          completed_at?: string | null
+          completed_count?: number
+          created_at?: string
+          gate_description?: string | null
+          gate_name: string
+          id?: string
+          required_count?: number
+        }
+        Update: {
+          agent_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          completed_count?: number
+          created_at?: string
+          gate_description?: string | null
+          gate_name?: string
+          id?: string
+          required_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calibration_gates_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_conversations: {
         Row: {
@@ -419,6 +555,38 @@ export type Database = {
             columns: ["recorded_by_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_notes: {
+        Row: {
+          author: string
+          client_id: string
+          content: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          author?: string
+          client_id: string
+          content: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          author?: string
+          client_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -799,6 +967,33 @@ export type Database = {
           },
         ]
       }
+      notification_preferences: {
+        Row: {
+          alert_channel: string
+          approval_channel: string
+          id: string
+          report_channel: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_channel?: string
+          approval_channel?: string
+          id?: string
+          report_channel?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_channel?: string
+          approval_channel?: string
+          id?: string
+          report_channel?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       onboarding_patterns: {
         Row: {
           client_id: string
@@ -842,6 +1037,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pipeline_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
       }
       proposals: {
         Row: {
@@ -943,6 +1156,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      weekly_reports: {
+        Row: {
+          agent_cost_total: number | null
+          cost_per_lead: number | null
+          deals_closed_count: number | null
+          generated_at: string
+          id: string
+          new_leads_count: number | null
+          pipeline_value_total: number | null
+          proposals_sent_count: number | null
+          report_data: Json | null
+          revenue_this_week: number | null
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          agent_cost_total?: number | null
+          cost_per_lead?: number | null
+          deals_closed_count?: number | null
+          generated_at?: string
+          id?: string
+          new_leads_count?: number | null
+          pipeline_value_total?: number | null
+          proposals_sent_count?: number | null
+          report_data?: Json | null
+          revenue_this_week?: number | null
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          agent_cost_total?: number | null
+          cost_per_lead?: number | null
+          deals_closed_count?: number | null
+          generated_at?: string
+          id?: string
+          new_leads_count?: number | null
+          pipeline_value_total?: number | null
+          proposals_sent_count?: number | null
+          report_data?: Json | null
+          revenue_this_week?: number | null
+          week_end?: string
+          week_start?: string
+        }
+        Relationships: []
       }
       valid_approval_transitions: {
         Row: {

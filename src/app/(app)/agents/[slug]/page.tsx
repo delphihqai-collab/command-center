@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
+import { CalibrationTracker } from "./_components/calibration-tracker";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -21,7 +22,7 @@ export default async function AgentDetailPage({ params }: Props) {
 
   if (!agent) notFound();
 
-  const [reportsRes, logsRes] = await Promise.all([
+  const [reportsRes, logsRes, gatesRes] = await Promise.all([
     supabase
       .from("agent_reports")
       .select("*")
@@ -34,10 +35,16 @@ export default async function AgentDetailPage({ params }: Props) {
       .eq("agent_id", agent.id)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase
+      .from("calibration_gates")
+      .select("*")
+      .eq("agent_id", agent.id)
+      .order("created_at", { ascending: true }),
   ]);
 
   const reports = reportsRes.data ?? [];
   const logs = logsRes.data ?? [];
+  const gates = gatesRes.data ?? [];
 
   return (
     <div className="space-y-6">
@@ -93,6 +100,11 @@ export default async function AgentDetailPage({ params }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Calibration Tracker — only for built_not_calibrated agents */}
+      {agent.status === "built_not_calibrated" && gates.length > 0 && (
+        <CalibrationTracker gates={gates} />
+      )}
 
       {/* Recent Reports */}
       <Card className="border-zinc-800 bg-zinc-900">

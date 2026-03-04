@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign } from "lucide-react";
 import { CostChart } from "./_components/cost-chart";
 import { CostExportButton } from "./_components/cost-export-button";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 async function CostKPIs() {
   const supabase = await createClient();
@@ -173,6 +174,8 @@ export default async function CostsPage() {
         </div>
         <CostExportButton />
       </div>
+
+      <RealtimeRefresh table="agent_token_usage" />
 
       <Suspense fallback={<Skeleton className="h-24 w-full rounded-lg" />}>
         <CostKPIs />

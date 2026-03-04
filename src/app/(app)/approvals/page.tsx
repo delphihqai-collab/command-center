@@ -77,17 +77,50 @@ async function ApprovalsList({ statusFilter }: { statusFilter?: string }) {
                       {a.draft_content && (
                         <div className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
                           <p className="text-xs text-zinc-500">Draft</p>
-                          <p className="mt-1 line-clamp-3 text-xs text-zinc-300">
+                          <p className="mt-1 whitespace-pre-wrap font-mono text-xs text-zinc-300">
                             {a.draft_content}
                           </p>
                         </div>
                       )}
 
-                      {/* Risk info */}
+                      {/* Risk information */}
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {a.risks_if_approved && (
+                          <div className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
+                            <p className="text-xs font-medium text-amber-400">Risks if Approved</p>
+                            <p className="mt-1 text-xs text-zinc-300">{a.risks_if_approved}</p>
+                          </div>
+                        )}
+                        {a.risks_if_rejected && (
+                          <div className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
+                            <p className="text-xs font-medium text-red-400">Risks if Rejected</p>
+                            <p className="mt-1 text-xs text-zinc-300">{a.risks_if_rejected}</p>
+                          </div>
+                        )}
+                      </div>
+
                       {a.risk_if_delayed && (
                         <p className="text-xs text-amber-400">
                           Risk if delayed: {a.risk_if_delayed}
                         </p>
+                      )}
+
+                      {/* Alternatives */}
+                      {a.alternatives && (
+                        <div className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
+                          <p className="text-xs text-zinc-500">Alternatives</p>
+                          <p className="mt-1 text-xs text-zinc-300">{a.alternatives}</p>
+                        </div>
+                      )}
+
+                      {/* Decision info (for decided approvals) */}
+                      {a.decided_by && (
+                        <div className="flex items-center gap-2 text-xs text-zinc-500">
+                          <span>Decided by: {a.decided_by}</span>
+                          {a.decision_reason && (
+                            <span>· Reason: {a.decision_reason}</span>
+                          )}
+                        </div>
                       )}
 
                       {/* Metadata */}

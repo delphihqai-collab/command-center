@@ -56,3 +56,61 @@ export async function advanceLeadStage(
     };
   }
 }
+
+export async function bulkAdvanceStage(
+  leadIds: string[],
+  toStage: string
+): Promise<ServerActionResult> {
+  try {
+    const { supabase, user } = await verifyAuth();
+
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("leads")
+      .update({ stage: toStage, last_activity_at: now, updated_at: now })
+      .in("id", leadIds);
+
+    if (error) return { success: false, error: error.message };
+
+    // Record in stage history for each lead
+    const historyRows = leadIds.map((lead_id) => ({
+      lead_id,
+      to_stage: toStage,
+      note: `Bulk advance by ${user.email} via Command Center`,
+    }));
+    await supabase.from("lead_stage_history").insert(historyRows);
+
+    revalidatePath("/pipeline");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Unknown error",
+    };
+  }
+}
+
+export async function bulkArchiveLeads(
+  leadIds: string[]
+): Promise<ServerActionResult> {
+  try {
+    const { supabase } = await verifyAuth();
+
+    const { error } = await supabase
+      .from("leads")
+      .update({ archived_at: new Date().toISOString() })
+      .in("id", leadIds);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/pipeline");
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Unknown error",
+    };
+  }
+}

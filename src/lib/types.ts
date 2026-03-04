@@ -16,6 +16,13 @@ export type ChatConversation = Database["public"]["Tables"]["chat_conversations"
 export type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"];
 export type AgentTokenUsage = Database["public"]["Tables"]["agent_token_usage"]["Row"];
 export type AuditLogEntry = Database["public"]["Tables"]["audit_log"]["Row"];
+export type AlertRule = Database["public"]["Tables"]["alert_rules"]["Row"];
+export type AlertEvent = Database["public"]["Tables"]["alert_events"]["Row"];
+export type CalibrationGate = Database["public"]["Tables"]["calibration_gates"]["Row"];
+export type WeeklyReport = Database["public"]["Tables"]["weekly_reports"]["Row"];
+export type ClientNote = Database["public"]["Tables"]["client_notes"]["Row"];
+export type NotificationPreference = Database["public"]["Tables"]["notification_preferences"]["Row"];
+export type PipelineConfig = Database["public"]["Tables"]["pipeline_config"]["Row"];
 
 export type ServerActionResult<T = void> =
   | { success: true; data?: T }

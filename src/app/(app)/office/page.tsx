@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { OfficeFloor } from "./_components/office-floor";
 import { Building2 } from "lucide-react";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 const AGENT_RANKS: Record<string, "director" | "senior" | "standard" | "support" | "research"> = {
   hermes: "director",
@@ -59,6 +60,7 @@ export default async function OfficePage() {
           {agents.filter((a) => a.status === "active").length} active · {agents.length} total
         </span>
       </div>
+      <RealtimeRefresh table="agents" />
       <OfficeFloor agents={agentsWithMeta} />
     </div>
   );

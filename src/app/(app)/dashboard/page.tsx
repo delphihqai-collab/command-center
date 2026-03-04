@@ -12,9 +12,11 @@ import {
   DollarSign,
   AlertTriangle,
   Activity,
+  Bell,
 } from "lucide-react";
 import { PipelineFunnelChart } from "./_components/pipeline-funnel-chart";
 import { PIPELINE_STAGES } from "@/lib/types";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 function CardSkeleton() {
   return <Skeleton className="h-40 w-full rounded-lg" />;
@@ -27,7 +29,7 @@ async function KPICards() {
   const now = new Date();
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
-  const [leadsWeekRes, proposalsSentRes, clientsRes, revenueRes] =
+  const [leadsWeekRes, proposalsSentRes, clientsRes, revenueRes, alertsRes] =
     await Promise.all([
       supabase
         .from("leads")
@@ -48,6 +50,11 @@ async function KPICards() {
         .select("monthly_value")
         .eq("health_status", "healthy")
         .is("archived_at", null),
+      supabase
+        .from("alert_events")
+        .select("id", { count: "exact", head: true })
+        .eq("resolved", false)
+        .eq("severity", "critical"),
     ]);
 
   const leadsThisWeek = leadsWeekRes.count ?? 0;
@@ -61,6 +68,7 @@ async function KPICards() {
     (sum, c) => sum + c.monthly_value,
     0
   );
+  const criticalAlerts = alertsRes.count ?? 0;
 
   const kpis = [
     {
@@ -88,26 +96,39 @@ async function KPICards() {
       icon: DollarSign,
       color: "text-emerald-400",
     },
+    {
+      label: "Critical Alerts",
+      value: criticalAlerts.toString(),
+      icon: Bell,
+      color: criticalAlerts > 0 ? "text-red-400" : "text-zinc-400",
+      href: "/alerts",
+    },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      {kpis.map((kpi) => (
-        <Card key={kpi.label} className="border-zinc-800 bg-zinc-900">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className={`rounded-lg bg-zinc-950 p-2 ${kpi.color}`}>
-              <kpi.icon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs text-zinc-500">{kpi.label}</p>
-              <p className="text-2xl font-bold text-zinc-50">{kpi.value}</p>
-              {kpi.sub && (
-                <p className="text-xs text-amber-400">{kpi.sub}</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      {kpis.map((kpi) => {
+        const content = (
+          <Card key={kpi.label} className={`border-zinc-800 bg-zinc-900 ${kpi.href ? "transition-colors hover:border-zinc-700" : ""}`}>
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className={`rounded-lg bg-zinc-950 p-2 ${kpi.color}`}>
+                <kpi.icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500">{kpi.label}</p>
+                <p className="text-2xl font-bold text-zinc-50">{kpi.value}</p>
+                {kpi.sub && (
+                  <p className="text-xs text-amber-400">{kpi.sub}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+        if (kpi.href) {
+          return <Link key={kpi.label} href={kpi.href}>{content}</Link>;
+        }
+        return content;
+      })}
     </div>
   );
 }
@@ -375,6 +396,7 @@ async function ActivityFeed() {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <RealtimeRefresh table="agent_logs" />
         {items.length === 0 ? (
           <p className="text-sm text-zinc-500">No recent activity.</p>
         ) : (

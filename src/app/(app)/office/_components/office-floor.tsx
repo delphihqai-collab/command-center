@@ -41,7 +41,7 @@ export function OfficeFloor({ agents }: { agents: AgentData[] }) {
     <>
       {/* Office floor grid — 4 columns */}
       <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-6">
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {allAgents.map((agent) => (
             <AgentDesk
               key={agent.id}
