@@ -1,5 +1,7 @@
 # [ARCHIVED — See implementation-spec-v5.md]
 
+# [ARCHIVED — See implementation-spec-v5.md]
+
 # Command Center — Implementation Spec V4
 **Version:** 4.0  
 **Status:** ACTIVE  
