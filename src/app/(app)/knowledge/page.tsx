@@ -1,18 +1,17 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
+import { KnowledgeSearch } from "./_components/knowledge-search";
 
-export default async function KnowledgePage() {
+interface Props {
+  searchParams: Promise<{ q?: string }>;
+}
+
+async function KnowledgeContent({ query }: { query?: string }) {
   const supabase = await createClient();
 
   const [dealRes, onboardingRes] = await Promise.all([
@@ -26,8 +25,29 @@ export default async function KnowledgePage() {
       .order("created_at", { ascending: false }),
   ]);
 
-  const deals = dealRes.data ?? [];
-  const onboarding = onboardingRes.data ?? [];
+  let deals = dealRes.data ?? [];
+  let onboarding = onboardingRes.data ?? [];
+
+  // Server-side search filtering
+  if (query) {
+    const q = query.toLowerCase();
+    deals = deals.filter(
+      (d) =>
+        d.key_learning.toLowerCase().includes(q) ||
+        (d.leads as unknown as { company_name: string }).company_name
+          .toLowerCase()
+          .includes(q) ||
+        d.outcome.toLowerCase().includes(q) ||
+        d.loss_reason_primary?.toLowerCase().includes(q)
+    );
+    onboarding = onboarding.filter(
+      (o) =>
+        o.key_learning.toLowerCase().includes(q) ||
+        (o.clients as unknown as { company_name: string }).company_name
+          .toLowerCase()
+          .includes(q)
+    );
+  }
 
   const winRate = deals.length
     ? Math.round(
@@ -36,14 +56,14 @@ export default async function KnowledgePage() {
     : 0;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-50">Knowledge Base</h1>
-        <p className="text-sm text-zinc-400">
-          Commercial intelligence from {deals.length} deals and{" "}
-          {onboarding.length} onboarding cycles
-        </p>
-      </div>
+    <>
+      <p className="text-sm text-zinc-400">
+        Commercial intelligence from {deals.length} deals and{" "}
+        {onboarding.length} onboarding cycles
+        {query && (
+          <span className="text-indigo-400"> — filtered by "{query}"</span>
+        )}
+      </p>
 
       {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -76,7 +96,11 @@ export default async function KnowledgePage() {
           <CardContent className="p-4">
             <p className="text-xs text-zinc-500">Competitor Wins Against Us</p>
             <p className="mt-1 text-2xl font-bold text-zinc-50">
-              {deals.filter((d) => d.competitor_involved && d.outcome === "lost").length}
+              {
+                deals.filter(
+                  (d) => d.competitor_involved && d.outcome === "lost"
+                ).length
+              }
             </p>
           </CardContent>
         </Card>
@@ -84,108 +108,166 @@ export default async function KnowledgePage() {
 
       <Tabs defaultValue="deals">
         <TabsList className="border-zinc-800 bg-zinc-900">
-          <TabsTrigger value="deals">Deal Learnings</TabsTrigger>
-          <TabsTrigger value="onboarding">Onboarding Patterns</TabsTrigger>
+          <TabsTrigger value="deals">
+            Deal Learnings ({deals.length})
+          </TabsTrigger>
+          <TabsTrigger value="onboarding">
+            Onboarding Patterns ({onboarding.length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="deals" className="mt-4">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-zinc-800 hover:bg-transparent">
-                  <TableHead className="text-zinc-400">Company</TableHead>
-                  <TableHead className="text-zinc-400">Outcome</TableHead>
-                  <TableHead className="text-zinc-400">Sector</TableHead>
-                  <TableHead className="text-zinc-400">Velocity</TableHead>
-                  <TableHead className="text-zinc-400">Key Learning</TableHead>
-                  <TableHead className="text-zinc-400">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deals.length === 0 ? (
-                  <TableRow className="border-zinc-800">
-                    <TableCell colSpan={6} className="text-center text-zinc-500">
-                      No deal learnings recorded yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  deals.map((d) => (
-                    <TableRow key={d.id} className="border-zinc-800">
-                      <TableCell className="text-zinc-50">
-                        {(d.leads as unknown as { company_name: string }).company_name}
-                      </TableCell>
-                      <TableCell>
+          {deals.length === 0 ? (
+            <Card className="border-zinc-800 bg-zinc-900">
+              <CardContent className="p-8 text-center text-zinc-500">
+                No deal learnings found.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {deals.map((d) => (
+                <Card key={d.id} className="border-zinc-800 bg-zinc-900">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-zinc-50">
+                          {
+                            (
+                              d.leads as unknown as {
+                                company_name: string;
+                              }
+                            ).company_name
+                          }
+                        </span>
                         <StatusBadge status={d.outcome} />
-                      </TableCell>
-                      <TableCell className="text-zinc-400">
-                        {(d.leads as unknown as { sector: string | null }).sector ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-zinc-400">
-                        {d.deal_velocity_days ? `${d.deal_velocity_days}d` : "—"}
-                      </TableCell>
-                      <TableCell className="max-w-xs text-sm text-zinc-300">
-                        {d.key_learning}
-                      </TableCell>
-                      <TableCell className="text-zinc-500">
+                        {(
+                          d.leads as unknown as { sector: string | null }
+                        ).sector && (
+                          <span className="text-xs text-zinc-500">
+                            {
+                              (
+                                d.leads as unknown as {
+                                  sector: string;
+                                }
+                              ).sector
+                            }
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-zinc-500">
                         {format(new Date(d.created_at), "dd MMM yyyy")}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-zinc-300">{d.key_learning}</p>
+
+                    <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
+                      {d.deal_velocity_days && (
+                        <span>Velocity: {d.deal_velocity_days}d</span>
+                      )}
+                      {d.loss_reason_primary && (
+                        <span className="text-red-400">
+                          Loss: {d.loss_reason_primary}
+                        </span>
+                      )}
+                      {d.competitor_name && (
+                        <span>Competitor: {d.competitor_name}</span>
+                      )}
+                      {d.icp_match_quality && (
+                        <span>ICP: {d.icp_match_quality}</span>
+                      )}
+                    </div>
+
+                    {/* Detail: objections */}
+                    {d.objections &&
+                      Array.isArray(d.objections) &&
+                      d.objections.length > 0 && (
+                        <div className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
+                          <p className="text-xs text-zinc-500">Objections</p>
+                          <ul className="mt-1 space-y-0.5 text-xs text-zinc-400">
+                            {(d.objections as string[]).map((obj, i) => (
+                              <li key={i}>• {String(obj)}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="onboarding" className="mt-4">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-zinc-800 hover:bg-transparent">
-                  <TableHead className="text-zinc-400">Company</TableHead>
-                  <TableHead className="text-zinc-400">Day 30 Health</TableHead>
-                  <TableHead className="text-zinc-400">Time to Value</TableHead>
-                  <TableHead className="text-zinc-400">Escalations</TableHead>
-                  <TableHead className="text-zinc-400">Key Learning</TableHead>
-                  <TableHead className="text-zinc-400">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {onboarding.length === 0 ? (
-                  <TableRow className="border-zinc-800">
-                    <TableCell colSpan={6} className="text-center text-zinc-500">
-                      No onboarding patterns recorded yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  onboarding.map((o) => (
-                    <TableRow key={o.id} className="border-zinc-800">
-                      <TableCell className="text-zinc-50">
-                        {(o.clients as unknown as { company_name: string }).company_name}
-                      </TableCell>
-                      <TableCell>
+          {onboarding.length === 0 ? (
+            <Card className="border-zinc-800 bg-zinc-900">
+              <CardContent className="p-8 text-center text-zinc-500">
+                No onboarding patterns found.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {onboarding.map((o) => (
+                <Card key={o.id} className="border-zinc-800 bg-zinc-900">
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-zinc-50">
+                          {
+                            (
+                              o.clients as unknown as {
+                                company_name: string;
+                              }
+                            ).company_name
+                          }
+                        </span>
                         <StatusBadge status={o.health_at_day30} />
-                      </TableCell>
-                      <TableCell className="text-zinc-400">
-                        {o.time_to_value_days ? `${o.time_to_value_days}d` : "—"}
-                      </TableCell>
-                      <TableCell className="text-zinc-400">
-                        {o.escalations}
-                      </TableCell>
-                      <TableCell className="max-w-xs text-sm text-zinc-300">
-                        {o.key_learning}
-                      </TableCell>
-                      <TableCell className="text-zinc-500">
+                      </div>
+                      <span className="text-xs text-zinc-500">
                         {format(new Date(o.created_at), "dd MMM yyyy")}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                      </span>
+                    </div>
+
+                    <p className="text-sm text-zinc-300">{o.key_learning}</p>
+
+                    <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
+                      {o.time_to_value_days && (
+                        <span>Time to value: {o.time_to_value_days}d</span>
+                      )}
+                      {o.escalations !== null && (
+                        <span>Escalations: {o.escalations}</span>
+                      )}
+                      {o.day7_signals && (
+                        <span>Day 7: {o.day7_signals}</span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
+    </>
+  );
+}
+
+export default async function KnowledgePage({ searchParams }: Props) {
+  const params = await searchParams;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-semibold text-zinc-50">Knowledge Base</h1>
+      </div>
+
+      <Suspense>
+        <KnowledgeSearch />
+      </Suspense>
+
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
+        <KnowledgeContent query={params.q} />
+      </Suspense>
     </div>
   );
 }

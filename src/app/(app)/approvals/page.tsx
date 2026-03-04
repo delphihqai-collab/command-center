@@ -1,21 +1,17 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/status-badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { formatDistanceToNow, format } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatDistanceToNow } from "date-fns";
+import { ApprovalActions } from "./_components/approval-actions";
+import { AutoRefresh } from "./_components/auto-refresh";
 
 interface Props {
   searchParams: Promise<{ status?: string }>;
 }
 
-export default async function ApprovalsPage({ searchParams }: Props) {
-  const params = await searchParams;
+async function ApprovalsList({ statusFilter }: { statusFilter?: string }) {
   const supabase = await createClient();
 
   let query = supabase
@@ -23,86 +19,124 @@ export default async function ApprovalsPage({ searchParams }: Props) {
     .select("*, agents!approvals_created_by_agent_id_fkey(name)")
     .order("created_at", { ascending: false });
 
-  if (params.status) {
-    query = query.eq("status", params.status);
+  if (statusFilter) {
+    query = query.eq("status", statusFilter);
   }
 
   const { data: approvals } = await query;
 
-  const pendingCount = approvals?.filter((a) => a.status === "pending").length ?? 0;
+  const pendingCount =
+    approvals?.filter((a) => a.status === "pending").length ?? 0;
 
   return (
-    <div className="space-y-6">
+    <>
+      <p className="text-sm text-zinc-400">
+        {pendingCount} pending · {approvals?.length ?? 0} total
+      </p>
+
+      {!approvals || approvals.length === 0 ? (
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardContent className="p-8 text-center text-zinc-500">
+            No approvals found.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {approvals.map((a) => {
+            const isPending = a.status === "pending";
+            return (
+              <Card
+                key={a.id}
+                className="border-zinc-800 bg-zinc-900"
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      {/* Header row */}
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={a.urgency} />
+                        <StatusBadge status={a.status} />
+                        <span className="text-xs text-zinc-500">
+                          {formatDistanceToNow(new Date(a.created_at), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                      </div>
+
+                      {/* Action summary */}
+                      <p className="text-sm font-medium text-zinc-50">
+                        {a.action_summary}
+                      </p>
+
+                      {/* Context */}
+                      {a.context && (
+                        <p className="text-sm text-zinc-400">{a.context}</p>
+                      )}
+
+                      {/* Draft content preview */}
+                      {a.draft_content && (
+                        <div className="rounded-md border border-zinc-800 bg-zinc-950 p-2">
+                          <p className="text-xs text-zinc-500">Draft</p>
+                          <p className="mt-1 line-clamp-3 text-xs text-zinc-300">
+                            {a.draft_content}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Risk info */}
+                      {a.risk_if_delayed && (
+                        <p className="text-xs text-amber-400">
+                          Risk if delayed: {a.risk_if_delayed}
+                        </p>
+                      )}
+
+                      {/* Metadata */}
+                      <div className="flex flex-wrap gap-3 text-xs text-zinc-500">
+                        {a.recipient && <span>To: {a.recipient}</span>}
+                        {(a.agents as unknown as { name: string } | null)
+                          ?.name && (
+                          <span>
+                            Agent:{" "}
+                            {
+                              (a.agents as unknown as { name: string })
+                                .name
+                            }
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    {isPending && (
+                      <div className="shrink-0">
+                        <ApprovalActions approvalId={a.id} />
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
+}
+
+export default async function ApprovalsPage({ searchParams }: Props) {
+  const params = await searchParams;
+
+  return (
+    <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-semibold text-zinc-50">Approvals</h1>
-        <p className="text-sm text-zinc-400">
-          {pendingCount} pending · {approvals?.length ?? 0} total
-        </p>
-        <p className="mt-1 text-xs text-zinc-500">
-          Approve/reject via Discord for V1. UI actions coming in Phase 4.
-        </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-zinc-800 hover:bg-transparent">
-              <TableHead className="text-zinc-400">Urgency</TableHead>
-              <TableHead className="text-zinc-400">Action</TableHead>
-              <TableHead className="text-zinc-400">Recipient</TableHead>
-              <TableHead className="text-zinc-400">Agent</TableHead>
-              <TableHead className="text-zinc-400">Status</TableHead>
-              <TableHead className="text-zinc-400">Created</TableHead>
-              <TableHead className="text-zinc-400">Decision</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {!approvals || approvals.length === 0 ? (
-              <TableRow className="border-zinc-800">
-                <TableCell colSpan={7} className="text-center text-zinc-500">
-                  No approvals found.
-                </TableCell>
-              </TableRow>
-            ) : (
-              approvals.map((a) => (
-                <TableRow
-                  key={a.id}
-                  className="border-zinc-800 hover:bg-zinc-800/50"
-                >
-                  <TableCell>
-                    <StatusBadge status={a.urgency} />
-                  </TableCell>
-                  <TableCell>
-                    <p className="text-sm text-zinc-50">{a.action_summary}</p>
-                    {a.context && (
-                      <p className="mt-0.5 text-xs text-zinc-400">{a.context}</p>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-zinc-400">
-                    {a.recipient ?? "—"}
-                  </TableCell>
-                  <TableCell className="text-zinc-400">
-                    {(a.agents as unknown as { name: string } | null)?.name ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={a.status} />
-                  </TableCell>
-                  <TableCell className="text-zinc-400">
-                    {formatDistanceToNow(new Date(a.created_at), {
-                      addSuffix: true,
-                    })}
-                  </TableCell>
-                  <TableCell className="text-zinc-400">
-                    {a.decision_at
-                      ? format(new Date(a.decision_at), "dd MMM HH:mm")
-                      : "—"}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <AutoRefresh intervalMs={60000} />
+
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
+        <ApprovalsList statusFilter={params.status} />
+      </Suspense>
     </div>
   );
 }

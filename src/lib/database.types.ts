@@ -459,6 +459,7 @@ export type Database = {
       invoices: {
         Row: {
           amount: number
+          archived_at: string | null
           client_id: string
           created_at: string
           due_date: string
@@ -474,6 +475,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          archived_at?: string | null
           client_id: string
           created_at?: string
           due_date: string
@@ -489,6 +491,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          archived_at?: string | null
           client_id?: string
           created_at?: string
           due_date?: string
@@ -674,6 +677,7 @@ export type Database = {
       }
       proposals: {
         Row: {
+          archived_at: string | null
           boss_approved: boolean | null
           boss_approved_at: string | null
           created_at: string
@@ -703,6 +707,7 @@ export type Database = {
           version: number
         }
         Insert: {
+          archived_at?: string | null
           boss_approved?: boolean | null
           boss_approved_at?: string | null
           created_at?: string
@@ -732,6 +737,7 @@ export type Database = {
           version?: number
         }
         Update: {
+          archived_at?: string | null
           boss_approved?: boolean | null
           boss_approved_at?: string | null
           created_at?: string
@@ -769,6 +775,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      valid_stage_transitions: {
+        Row: {
+          created_at: string
+          from_stage: string
+          id: string
+          to_stage: string
+        }
+        Insert: {
+          created_at?: string
+          from_stage: string
+          id?: string
+          to_stage: string
+        }
+        Update: {
+          created_at?: string
+          from_stage?: string
+          id?: string
+          to_stage?: string
+        }
+        Relationships: []
       }
     }
     Views: {
