@@ -101,3 +101,55 @@ Always build with env vars:
 NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 ```
 Then restart the systemd service: `systemctl --user restart command-center`
+
+---
+
+## HERMES Reports
+
+After every implementation session, **you must generate a HERMES report** and commit it to the repository.
+
+### Report Location & Naming
+- Directory: `docs/hermes-reports/`
+- File format: `hermes-report-vX.md` (increment version number from previous report)
+- Example: `hermes-report-v1.md`, `hermes-report-v2.md`, etc.
+
+### Report Structure
+Each report must include:
+
+1. **Version & Metadata**
+   - Version number (e.g., v1, v2)
+   - Date completed (YYYY-MM-DD)
+   - Session duration or time spent
+
+2. **What Was Implemented**
+   - High-level summary of the work completed
+   - Features added, bugs fixed, or improvements made
+   - Link to relevant commits
+
+3. **Files Changed**
+   - List of modified files with brief description of changes
+   - Example: `src/app/(app)/pipeline/page.tsx — added lead count widget`
+
+4. **Issues Found**
+   - Any bugs, edge cases, or problems discovered during implementation
+   - Any workarounds applied
+   - Known limitations
+
+5. **What to Validate Next**
+   - Testing checkpoints for the work completed
+   - Recommended validation steps
+   - Blockers or dependencies to watch for
+
+### How to Generate
+After completing any implementation:
+1. Document the session in the format above
+2. Save as `docs/hermes-reports/hermes-report-vX.md` (increment X from the last report)
+3. Commit with message: `docs: hermes report v<X> — <one-line summary>`
+4. Push to main
+
+### Purpose
+These reports maintain a continuous audit trail of all implementation work on Command Center. They serve as:
+- Historical record for Delphi leadership
+- Quick reference for understanding what changed and why
+- Validation checklist for QA and deployment
+- Knowledge base for future context

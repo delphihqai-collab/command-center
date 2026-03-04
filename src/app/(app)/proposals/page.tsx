@@ -11,7 +11,7 @@ import {
 import Link from "next/link";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
 
-function GateIcon({ cleared }: { cleared: boolean }) {
+function GateIcon({ cleared }: { cleared: boolean | null }) {
   return cleared ? (
     <CheckCircle2 className="h-4 w-4 text-emerald-400" />
   ) : (

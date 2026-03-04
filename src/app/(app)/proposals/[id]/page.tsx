@@ -18,7 +18,7 @@ function GateRow({
   notes,
 }: {
   label: string;
-  cleared: boolean;
+  cleared: boolean | null;
   clearedAt: string | null;
   notes?: string | null;
 }) {
