@@ -15,7 +15,8 @@ async function verifyAuth() {
 }
 
 export async function approveAction(
-  approvalId: string
+  approvalId: string,
+  notes?: string
 ): Promise<ServerActionResult> {
   try {
     const { supabase, user } = await verifyAuth();
@@ -26,6 +27,7 @@ export async function approveAction(
         status: "approved",
         decision_at: new Date().toISOString(),
         approved_by_user_id: user.id,
+        approval_notes: notes ?? null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", approvalId)
@@ -45,7 +47,8 @@ export async function approveAction(
 }
 
 export async function rejectAction(
-  approvalId: string
+  approvalId: string,
+  notes?: string
 ): Promise<ServerActionResult> {
   try {
     const { supabase, user } = await verifyAuth();
@@ -56,6 +59,7 @@ export async function rejectAction(
         status: "rejected",
         decision_at: new Date().toISOString(),
         approved_by_user_id: user.id,
+        approval_notes: notes ?? null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", approvalId)

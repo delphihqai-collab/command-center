@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/status-badge";
 import {
@@ -8,8 +9,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { CheckCircle2, Clock, XCircle } from "lucide-react";
+import { LoadMoreButton } from "@/components/load-more-button";
+import { decodeCursor, encodeCursor, PAGE_SIZE } from "@/lib/pagination";
 
 function GateIcon({ cleared }: { cleared: boolean | null }) {
   return cleared ? (
@@ -20,36 +24,57 @@ function GateIcon({ cleared }: { cleared: boolean | null }) {
 }
 
 interface Props {
-  searchParams: Promise<{ status?: string; outcome?: string }>;
+  searchParams: Promise<{ status?: string; outcome?: string; cursor?: string }>;
 }
 
-export default async function ProposalsPage({ searchParams }: Props) {
-  const params = await searchParams;
+async function ProposalsTable({
+  status,
+  outcome,
+  cursor,
+}: {
+  status?: string;
+  outcome?: string;
+  cursor?: string;
+}) {
   const supabase = await createClient();
 
   let query = supabase
     .from("proposals")
     .select("*, leads!inner(company_name)")
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .limit(PAGE_SIZE + 1);
 
-  if (params.status) {
-    query = query.eq("status", params.status);
-  }
-  if (params.outcome) {
-    query = query.eq("outcome", params.outcome);
+  if (status) query = query.eq("status", status);
+  if (outcome) query = query.eq("outcome", outcome);
+
+  if (cursor) {
+    const decoded = decodeCursor(cursor);
+    if (decoded) {
+      query = query.lt("updated_at", decoded.sortValue);
+    }
   }
 
-  const { data: proposals } = await query;
+  const { data: rows, error } = await query;
+  if (error) {
+    return (
+      <p className="text-sm text-red-400">
+        Failed to load proposals: {error.message}
+      </p>
+    );
+  }
+
+  const proposals = rows ?? [];
+  const hasMore = proposals.length > PAGE_SIZE;
+  const displayed = hasMore ? proposals.slice(0, PAGE_SIZE) : proposals;
+  const nextCursor = hasMore
+    ? encodeCursor(
+        displayed[displayed.length - 1].id,
+        displayed[displayed.length - 1].updated_at
+      )
+    : null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-50">Proposals</h1>
-        <p className="text-sm text-zinc-400">
-          {proposals?.length ?? 0} proposals
-        </p>
-      </div>
-
+    <>
       <div className="rounded-lg border border-zinc-800 bg-zinc-900">
         <Table>
           <TableHeader>
@@ -66,14 +91,14 @@ export default async function ProposalsPage({ searchParams }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!proposals || proposals.length === 0 ? (
+            {displayed.length === 0 ? (
               <TableRow className="border-zinc-800">
                 <TableCell colSpan={9} className="text-center text-zinc-500">
                   No proposals found.
                 </TableCell>
               </TableRow>
             ) : (
-              proposals.map((p) => (
+              displayed.map((p) => (
                 <TableRow
                   key={p.id}
                   className="border-zinc-800 hover:bg-zinc-800/50"
@@ -124,6 +149,28 @@ export default async function ProposalsPage({ searchParams }: Props) {
           </TableBody>
         </Table>
       </div>
+      {nextCursor && <LoadMoreButton cursor={nextCursor} />}
+    </>
+  );
+}
+
+export default async function ProposalsPage({ searchParams }: Props) {
+  const params = await searchParams;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-zinc-50">Proposals</h1>
+        <p className="text-sm text-zinc-400">Proposal pipeline</p>
+      </div>
+
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
+        <ProposalsTable
+          status={params.status}
+          outcome={params.outcome}
+          cursor={params.cursor}
+        />
+      </Suspense>
     </div>
   );
 }

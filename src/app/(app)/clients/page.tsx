@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/status-badge";
 import {
@@ -8,47 +9,65 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { format } from "date-fns";
+import { LoadMoreButton } from "@/components/load-more-button";
+import { decodeCursor, encodeCursor, PAGE_SIZE } from "@/lib/pagination";
+import { HealthFilterTabs } from "./_components/health-filter-tabs";
 
 interface Props {
-  searchParams: Promise<{ health?: string; sector?: string; onboarding?: string }>;
+  searchParams: Promise<{ health?: string; cursor?: string }>;
 }
 
-export default async function ClientsPage({ searchParams }: Props) {
-  const params = await searchParams;
+async function ClientsTable({
+  health,
+  cursor,
+}: {
+  health?: string;
+  cursor?: string;
+}) {
   const supabase = await createClient();
 
   let query = supabase
     .from("clients")
     .select("*, agents!clients_assigned_am_id_fkey(name)")
     .is("archived_at", null)
-    .order("health_status", { ascending: true })
-    .order("contract_end", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(PAGE_SIZE + 1);
 
-  if (params.health) {
-    query = query.eq("health_status", params.health);
-  }
-  if (params.sector) {
-    query = query.eq("sector", params.sector);
-  }
-  if (params.onboarding === "yes") {
-    query = query.eq("onboarding_complete", true);
-  } else if (params.onboarding === "no") {
-    query = query.eq("onboarding_complete", false);
+  if (health) {
+    query = query.eq("health_status", health);
   }
 
-  const { data: clients } = await query;
+  if (cursor) {
+    const decoded = decodeCursor(cursor);
+    if (decoded) {
+      query = query.lt("created_at", decoded.sortValue);
+    }
+  }
+
+  const { data: rows, error } = await query;
+  if (error) {
+    return (
+      <p className="text-sm text-red-400">
+        Failed to load clients: {error.message}
+      </p>
+    );
+  }
+
+  const clients = rows ?? [];
+  const hasMore = clients.length > PAGE_SIZE;
+  const displayed = hasMore ? clients.slice(0, PAGE_SIZE) : clients;
+  const nextCursor = hasMore
+    ? encodeCursor(
+        displayed[displayed.length - 1].id,
+        displayed[displayed.length - 1].created_at
+      )
+    : null;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-50">Clients</h1>
-        <p className="text-sm text-zinc-400">
-          {clients?.length ?? 0} active clients
-        </p>
-      </div>
-
+    <>
       <div className="rounded-lg border border-zinc-800 bg-zinc-900">
         <Table>
           <TableHeader>
@@ -62,14 +81,14 @@ export default async function ClientsPage({ searchParams }: Props) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {!clients || clients.length === 0 ? (
+            {displayed.length === 0 ? (
               <TableRow className="border-zinc-800">
                 <TableCell colSpan={6} className="text-center text-zinc-500">
                   No clients found.
                 </TableCell>
               </TableRow>
             ) : (
-              clients.map((client) => (
+              displayed.map((client) => (
                 <TableRow
                   key={client.id}
                   className="border-zinc-800 hover:bg-zinc-800/50"
@@ -108,6 +127,28 @@ export default async function ClientsPage({ searchParams }: Props) {
           </TableBody>
         </Table>
       </div>
+      {nextCursor && <LoadMoreButton cursor={nextCursor} />}
+    </>
+  );
+}
+
+export default async function ClientsPage({ searchParams }: Props) {
+  const params = await searchParams;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-zinc-50">Clients</h1>
+        <p className="text-sm text-zinc-400">Active client portfolio</p>
+      </div>
+
+      <Suspense>
+        <HealthFilterTabs />
+      </Suspense>
+
+      <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
+        <ClientsTable health={params.health} cursor={params.cursor} />
+      </Suspense>
     </div>
   );
 }

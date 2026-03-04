@@ -134,6 +134,7 @@ export type Database = {
         Row: {
           action_summary: string
           alternatives: string | null
+          approval_notes: string | null
           approved_by_user_id: string | null
           context: string | null
           created_at: string
@@ -155,6 +156,7 @@ export type Database = {
         Insert: {
           action_summary: string
           alternatives?: string | null
+          approval_notes?: string | null
           approved_by_user_id?: string | null
           context?: string | null
           created_at?: string
@@ -176,6 +178,7 @@ export type Database = {
         Update: {
           action_summary?: string
           alternatives?: string | null
+          approval_notes?: string | null
           approved_by_user_id?: string | null
           context?: string | null
           created_at?: string
@@ -523,6 +526,7 @@ export type Database = {
           id: string
           lead_id: string
           note: string | null
+          reason: string | null
           to_stage: string
         }
         Insert: {
@@ -532,6 +536,7 @@ export type Database = {
           id?: string
           lead_id: string
           note?: string | null
+          reason?: string | null
           to_stage: string
         }
         Update: {
@@ -541,6 +546,7 @@ export type Database = {
           id?: string
           lead_id?: string
           note?: string | null
+          reason?: string | null
           to_stage?: string
         }
         Relationships: [

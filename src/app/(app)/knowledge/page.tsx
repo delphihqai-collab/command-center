@@ -1,28 +1,47 @@
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/status-badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { KnowledgeSearch } from "./_components/knowledge-search";
+import { LoadMoreButton } from "@/components/load-more-button";
+import { decodeCursor, encodeCursor, PAGE_SIZE } from "@/lib/pagination";
 
 interface Props {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; cursor?: string }>;
 }
 
-async function KnowledgeContent({ query }: { query?: string }) {
+async function KnowledgeContent({
+  query,
+  cursor,
+}: {
+  query?: string;
+  cursor?: string;
+}) {
   const supabase = await createClient();
 
+  let dealQuery = supabase
+    .from("deal_learnings")
+    .select("*, leads!inner(company_name, sector)")
+    .order("created_at", { ascending: false })
+    .limit(PAGE_SIZE + 1);
+
+  if (cursor) {
+    const decoded = decodeCursor(cursor);
+    if (decoded) {
+      dealQuery = dealQuery.lt("created_at", decoded.sortValue);
+    }
+  }
+
   const [dealRes, onboardingRes] = await Promise.all([
-    supabase
-      .from("deal_learnings")
-      .select("*, leads!inner(company_name, sector)")
-      .order("created_at", { ascending: false }),
+    dealQuery,
     supabase
       .from("onboarding_patterns")
       .select("*, clients!inner(company_name)")
-      .order("created_at", { ascending: false }),
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE + 1),
   ]);
 
   let deals = dealRes.data ?? [];
@@ -38,28 +57,45 @@ async function KnowledgeContent({ query }: { query?: string }) {
           .toLowerCase()
           .includes(q) ||
         d.outcome.toLowerCase().includes(q) ||
-        d.loss_reason_primary?.toLowerCase().includes(q)
+        d.loss_reason_primary?.toLowerCase().includes(q) ||
+        d.competitor_name?.toLowerCase().includes(q) ||
+        d.icp_match_quality?.toLowerCase().includes(q)
     );
     onboarding = onboarding.filter(
       (o) =>
         o.key_learning.toLowerCase().includes(q) ||
         (o.clients as unknown as { company_name: string }).company_name
           .toLowerCase()
-          .includes(q)
+          .includes(q) ||
+        o.day7_signals?.toLowerCase().includes(q)
     );
   }
 
-  const winRate = deals.length
+  const dealHasMore = deals.length > PAGE_SIZE;
+  const displayedDeals = dealHasMore ? deals.slice(0, PAGE_SIZE) : deals;
+  const nextCursor = dealHasMore
+    ? encodeCursor(
+        displayedDeals[displayedDeals.length - 1].id,
+        displayedDeals[displayedDeals.length - 1].created_at
+      )
+    : null;
+
+  const displayedOnboarding =
+    onboarding.length > PAGE_SIZE
+      ? onboarding.slice(0, PAGE_SIZE)
+      : onboarding;
+
+  const winRate = displayedDeals.length
     ? Math.round(
-        (deals.filter((d) => d.outcome === "won").length / deals.length) * 100
+        (displayedDeals.filter((d) => d.outcome === "won").length / displayedDeals.length) * 100
       )
     : 0;
 
   return (
     <>
       <p className="text-sm text-zinc-400">
-        Commercial intelligence from {deals.length} deals and{" "}
-        {onboarding.length} onboarding cycles
+        Commercial intelligence from {displayedDeals.length} deals and{" "}
+        {displayedOnboarding.length} onboarding cycles
         {query && (
           <span className="text-indigo-400"> — filtered by "{query}"</span>
         )}
@@ -77,13 +113,13 @@ async function KnowledgeContent({ query }: { query?: string }) {
           <CardContent className="p-4">
             <p className="text-xs text-zinc-500">Avg. Deal Velocity</p>
             <p className="mt-1 text-2xl font-bold text-zinc-50">
-              {deals.length
+              {displayedDeals.length
                 ? Math.round(
-                    deals
+                    displayedDeals
                       .filter((d) => d.deal_velocity_days)
                       .reduce((s, d) => s + (d.deal_velocity_days ?? 0), 0) /
                       Math.max(
-                        deals.filter((d) => d.deal_velocity_days).length,
+                        displayedDeals.filter((d) => d.deal_velocity_days).length,
                         1
                       )
                   )
@@ -97,7 +133,7 @@ async function KnowledgeContent({ query }: { query?: string }) {
             <p className="text-xs text-zinc-500">Competitor Wins Against Us</p>
             <p className="mt-1 text-2xl font-bold text-zinc-50">
               {
-                deals.filter(
+                displayedDeals.filter(
                   (d) => d.competitor_involved && d.outcome === "lost"
                 ).length
               }
@@ -109,15 +145,15 @@ async function KnowledgeContent({ query }: { query?: string }) {
       <Tabs defaultValue="deals">
         <TabsList className="border-zinc-800 bg-zinc-900">
           <TabsTrigger value="deals">
-            Deal Learnings ({deals.length})
+            Deal Learnings ({displayedDeals.length})
           </TabsTrigger>
           <TabsTrigger value="onboarding">
-            Onboarding Patterns ({onboarding.length})
+            Onboarding Patterns ({displayedOnboarding.length})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="deals" className="mt-4">
-          {deals.length === 0 ? (
+          {displayedDeals.length === 0 ? (
             <Card className="border-zinc-800 bg-zinc-900">
               <CardContent className="p-8 text-center text-zinc-500">
                 No deal learnings found.
@@ -125,7 +161,7 @@ async function KnowledgeContent({ query }: { query?: string }) {
             </Card>
           ) : (
             <div className="space-y-3">
-              {deals.map((d) => (
+              {displayedDeals.map((d) => (
                 <Card key={d.id} className="border-zinc-800 bg-zinc-900">
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -196,10 +232,11 @@ async function KnowledgeContent({ query }: { query?: string }) {
               ))}
             </div>
           )}
+          {nextCursor && <LoadMoreButton cursor={nextCursor} />}
         </TabsContent>
 
         <TabsContent value="onboarding" className="mt-4">
-          {onboarding.length === 0 ? (
+          {displayedOnboarding.length === 0 ? (
             <Card className="border-zinc-800 bg-zinc-900">
               <CardContent className="p-8 text-center text-zinc-500">
                 No onboarding patterns found.
@@ -207,7 +244,7 @@ async function KnowledgeContent({ query }: { query?: string }) {
             </Card>
           ) : (
             <div className="space-y-3">
-              {onboarding.map((o) => (
+              {displayedOnboarding.map((o) => (
                 <Card key={o.id} className="border-zinc-800 bg-zinc-900">
                   <CardContent className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
@@ -266,7 +303,7 @@ export default async function KnowledgePage({ searchParams }: Props) {
       </Suspense>
 
       <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
-        <KnowledgeContent query={params.q} />
+        <KnowledgeContent query={params.q} cursor={params.cursor} />
       </Suspense>
     </div>
   );
