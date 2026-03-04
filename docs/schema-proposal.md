@@ -125,12 +125,16 @@ All of these are additive. The database schema is designed to support them witho
 - Covers all dashboard needs: pipeline funnel, conversion rates, health score trends, invoice ageing, revenue projections
 - Lightweight — no heavyweight BI tool needed for V1
 
-**Hosting: Vercel**
-- Native Next.js host — zero-configuration deployment
-- Connected directly to the command-center GitHub repo
-- Every push to `main` triggers an automatic production deployment
-- Every pull request gets a preview URL — test before merging
-- Free tier covers all V1 needs; Pro tier available when traffic requires it
+**Hosting: PC2 (local) — port 9069**
+- Next.js runs directly on PC2: `next start --port 9069`
+- Access method 1 — SSH tunnel (any machine with SSH access):
+  `ssh -L 9069:localhost:9069 delphi@hermes.tail280e9c.ts.net`
+  Then open `http://localhost:9069` in any browser
+- Access method 2 — Tailscale direct (Tailscale installed on device):
+  `http://hermes.tail280e9c.ts.net:9069` or `http://100.99.147.97:9069`
+- No public exposure — zero attack surface
+- No third-party hosting costs
+- Vercel can be added later when public access is needed
 
 **Package management: pnpm**
 - Faster and more disk-efficient than npm
@@ -759,7 +763,7 @@ Estimated effort: 3–4 days
 ### Phase 3 — Backoffice V1
 Pages: Dashboard, Pipeline, Clients, Agents
 Auth: Supabase Auth, two user accounts
-Hosting: Vercel, connected to GitHub, auto-deploy on main
+Hosting: PC2 port 9069, access via SSH tunnel or Tailscale
 Estimated effort: 1–2 weeks
 
 ### Phase 4 — Backoffice Full
@@ -801,8 +805,8 @@ Recommended to enable from day one — once client data enters the system, RLS e
 **Q7. Supabase Auth for the backoffice**
 Two user accounts needed. Email + password, or Google OAuth login? Google OAuth is one config change in Supabase.
 
-**Q8. Custom domain**
-Vercel subdomain (e.g. `command-center-xxx.vercel.app`) is fine for V1. Is a custom domain (e.g. `app.delphihq.ai`) needed before showing this to anyone outside the two authorised users?
+**Q8. Process manager for the Next.js app on PC2**
+The app runs on PC2 port 9069. For reliability, it should run under a process manager so it survives reboots. Options: PM2 (lightweight, Node-native), or a user systemd service (same approach as the OpenClaw gateway). Which is preferred?
 
 **Q9. ATLAS schema review**
 ATLAS is the Development Director. Should ATLAS review this schema before Phase 1 migrations run? If ATLAS will own the technical implementation, his input on the DB design matters before it is locked.
