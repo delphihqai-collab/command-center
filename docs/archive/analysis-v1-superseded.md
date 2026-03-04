@@ -1,3 +1,5 @@
+# [SUPERSEDED] See implementation-spec-v2.md
+
 # Codebase Analysis — Errors, Issues, and Suggested Improvements
 
 **Analyst:** HERMES  

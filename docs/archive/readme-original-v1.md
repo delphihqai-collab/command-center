@@ -1,3 +1,5 @@
+# [SUPERSEDED] See implementation-spec-v2.md
+
 # Command Center — Delphi Mission Control
 
 Central system for agent management, pipeline tracking, client operations, and commercial intelligence.

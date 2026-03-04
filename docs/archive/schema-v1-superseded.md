@@ -1,3 +1,5 @@
+# [SUPERSEDED — V1 SCHEMA] See implementation-spec-v2.md for current schema
+
 # Command Center — Full Architecture Specification
 
 **Version:** 1.0  
