@@ -522,3 +522,365 @@ V4 is complete when ALL of the following pass:
 - [ ] `database.types.ts` regenerated
 - [ ] Service running HTTP 200 on port 9069
 - [ ] hermes-report-v4.md committed
+
+---
+
+## 7. Sessions Panel
+
+### Purpose
+
+Monitor and control active sub-agent sessions for all 8 agents. Operational visibility into what's running right now.
+
+### File Structure
+
+```
+src/app/(app)/sessions/
+├── page.tsx
+└── _components/
+    ├── SessionsTable.tsx
+    ├── SessionRow.tsx
+    └── TerminateButton.tsx
+```
+
+### Data Source
+
+```typescript
+// Route handler: src/app/api/gateway/sessions/route.ts
+// GET http://localhost:18789/sessions
+// Auth required
+
+interface GatewaySession {
+  session_key: string
+  agent_slug: string
+  status: 'active' | 'idle' | 'terminated'
+  started_at: string
+  last_activity_at: string
+  estimated_cost_usd: number
+}
+```
+
+### SessionsTable.tsx
+
+Columns: Agent | Session Key | Status | Started | Last Activity | Est. Cost | Actions
+
+**All 8 agents must appear.** Agents with no active session show a row: agent name | — | "No active session" (zinc-600 text).
+
+Build by: left-joining the `agents` table (from Supabase) against the gateway session list (matched by `agent_slug` = `agents.slug`).
+
+Auto-refresh: `useEffect` + `setInterval(30000)`. Appropriate for this panel.
+
+Actions:
+- **Monitor** — opens a new browser tab with the gateway log stream URL for that session
+- **Terminate** — shows confirmation dialog, then `DELETE http://localhost:18789/sessions/{key}`
+
+---
+
+## 8. Memory Browser
+
+### Purpose
+
+Browse memory files for all 8 agents without SSH.
+
+### File Structure
+
+```
+src/app/(app)/memory/
+├── page.tsx
+└── _components/
+    ├── MemoryBrowser.tsx
+    ├── AgentMemorySelector.tsx
+    ├── MemoryFileList.tsx
+    ├── MemoryFileViewer.tsx
+    └── MemorySearch.tsx
+```
+
+### Agent Memory Paths
+
+```typescript
+// src/lib/memory-paths.ts
+export const MEMORY_PATHS: Record<string, string> = {
+  'hermes':               '/home/delphi/.openclaw/workspace/memory',
+  'ae':                   '/home/delphi/teams/commercial/ae/memory',
+  'am':                   '/home/delphi/teams/commercial/am/memory',
+  'sdr':                  '/home/delphi/teams/commercial/sdr/memory',
+  'finance':              '/home/delphi/teams/commercial/finance/memory',
+  'legal':                '/home/delphi/teams/commercial/legal/memory',
+  'market-intelligence':  '/home/delphi/teams/commercial/market-intelligence/memory',
+  'knowledge-curator':    '/home/delphi/teams/commercial/knowledge-curator/memory',
+}
+```
+
+### Route Handler
+
+```typescript
+// src/app/api/memory/route.ts
+// GET /api/memory?agent=hermes           -> returns: string[] of filenames
+// GET /api/memory?agent=hermes&file=x.md -> returns: { content: string }
+// Security:
+// 1. Auth check — require Supabase session
+// 2. Validate agent param is in MEMORY_PATHS keys
+// 3. Resolve full path = MEMORY_PATHS[agent] + '/' + file
+// 4. Verify resolved path starts with MEMORY_PATHS[agent] (prevent traversal)
+// 5. Use fs.readdir or fs.readFile (server-side only, never expose to browser)
+```
+
+### MemoryFileViewer.tsx
+
+Render `.md` files with `react-markdown`. If not installed: `npm install react-markdown`.
+
+---
+
+## 9. Log Viewer
+
+### Purpose
+
+Unified log stream: database `agent_logs` + system journal.
+
+### File Structure
+
+```
+src/app/(app)/logs/
+├── page.tsx
+└── _components/
+    ├── LogViewer.tsx
+    ├── LogFilters.tsx
+    ├── LogRow.tsx
+    └── LiveTailToggle.tsx
+```
+
+### Data Sources
+
+**Source 1: `agent_logs` table** (already exists)
+
+```typescript
+supabase
+  .from('agent_logs')
+  .select('*, agents(name, slug)')
+  .eq('agent_id', selectedAgentId)    // optional
+  .gte('created_at', fromTimestamp)   // optional
+  .order('created_at', { ascending: false })
+  .limit(200)
+```
+
+**Source 2: journalctl** (via route handler)
+
+```typescript
+// src/app/api/logs/journal/route.ts
+// Runs: journalctl --user -u command-center -n 100 --no-pager --output=json
+// Parse output, return as JSON array
+// Auth required
+```
+
+### LogViewer.tsx Display
+
+Columns: Timestamp | Agent | Action | Detail
+
+Level coloring (infer from `action` field keywords):
+- Contains 'error', 'fail' -> `text-red-400`
+- Contains 'warn' -> `text-amber-400`
+- Otherwise -> `text-zinc-300`
+
+**Live Tail:** When enabled, subscribe to Supabase Realtime on `agent_logs`. New rows appear at top. Prune to max 500 rows.
+
+**Agent filter:** Dropdown — all 8 agents + "All agents". Never HERMES-only.
+
+---
+
+## 10. Audit Log Page
+
+Full UI for the `audit_log` table.
+
+### File Structure
+
+```
+src/app/(app)/audit-log/
+├── page.tsx
+└── _components/
+    ├── AuditLogTable.tsx
+    ├── AuditLogFilters.tsx
+    └── AuditLogRow.tsx
+```
+
+### page.tsx Query
+
+```typescript
+// URL params: agent, action, from, to, cursor
+supabase
+  .from('audit_log')
+  .select('*')
+  .eq('user_email', agentFilter ?? undefined)
+  .eq('action', actionFilter ?? undefined)
+  .gte('created_at', fromDate ?? undefined)
+  .lte('created_at', toDate ?? undefined)
+  .order('created_at', { ascending: false })
+  .limit(51)  // PAGE_SIZE 50 + 1 for hasMore detection
+```
+
+### AuditLogTable.tsx Columns
+
+- **Timestamp** — formatted. Hover shows relative time.
+- **Agent/User** — `user_email` column
+- **Action** — styled code badge (e.g., `lead_stage_changed`)
+- **Entity Type** — `entity_type`
+- **Entity ID** — truncated UUID with copy-on-click
+- **Changes** — expandable accordion: old_values JSON | new_values JSON
+
+### AuditLogFilters.tsx
+
+Form with URL param submission (not client-side):
+- Agent dropdown: all 8 agents + "All"
+- Action type: text input
+- Date from / Date to: date inputs
+
+---
+
+## 11. Database Migrations (V4 — Exact SQL)
+
+### Migration 8: V4 Approval Stages
+
+**File:** `supabase/migrations/20260304000008_v4_approval_stages.sql`
+
+```sql
+alter table public.approvals
+  add column if not exists stage text not null default 'submitted',
+  add column if not exists stage_history jsonb not null default '[]',
+  add column if not exists stage_advanced_at timestamptz,
+  add column if not exists stage_advanced_by text;
+
+create table if not exists public.valid_approval_transitions (
+  id uuid primary key default gen_random_uuid(),
+  from_stage text not null,
+  to_stage text not null,
+  constraint valid_approval_transitions_unique unique (from_stage, to_stage),
+  created_at timestamptz not null default now()
+);
+
+insert into public.valid_approval_transitions (from_stage, to_stage) values
+  ('draft', 'submitted'),
+  ('submitted', 'opened'),
+  ('submitted', 'closed'),
+  ('opened', 'reviewed'),
+  ('reviewed', 'negotiation'),
+  ('reviewed', 'closed'),
+  ('negotiation', 'closed')
+on conflict do nothing;
+
+create index if not exists idx_approvals_stage
+  on public.approvals(stage) where archived_at is null;
+
+alter table public.valid_approval_transitions enable row level security;
+create policy "authenticated users can read valid_approval_transitions"
+  on public.valid_approval_transitions for select to authenticated using (true);
+```
+
+### Migration 9: Chat Tables
+
+**File:** `supabase/migrations/20260304000009_v4_chat.sql`
+
+```sql
+create table public.chat_conversations (
+  id uuid primary key default gen_random_uuid(),
+  agent_id uuid references public.agents(id) not null,
+  title text,
+  created_at timestamptz not null default now(),
+  archived_at timestamptz
+);
+
+create table public.chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid references public.chat_conversations(id) not null,
+  role text not null check (role in ('user', 'agent')),
+  content text not null,
+  created_at timestamptz not null default now()
+);
+
+create index idx_chat_conversations_agent_id
+  on public.chat_conversations(agent_id) where archived_at is null;
+create index idx_chat_messages_conversation_id
+  on public.chat_messages(conversation_id);
+create index idx_chat_messages_created_at
+  on public.chat_messages(created_at desc);
+
+alter table public.chat_conversations enable row level security;
+alter table public.chat_messages enable row level security;
+
+create policy "authenticated users can manage chat_conversations"
+  on public.chat_conversations for all to authenticated using (true) with check (true);
+create policy "authenticated users can manage chat_messages"
+  on public.chat_messages for all to authenticated using (true) with check (true);
+```
+
+### Migration 10: Token Usage
+
+**File:** `supabase/migrations/20260304000010_v4_token_usage.sql`
+
+```sql
+create table public.agent_token_usage (
+  id uuid primary key default gen_random_uuid(),
+  agent_id uuid references public.agents(id),
+  model text not null,
+  input_tokens integer not null default 0,
+  output_tokens integer not null default 0,
+  cost_usd numeric(10,6) not null default 0,
+  session_key text,
+  task_description text,
+  recorded_at timestamptz not null default now()
+);
+
+create index idx_token_usage_agent_id on public.agent_token_usage(agent_id);
+create index idx_token_usage_recorded_at on public.agent_token_usage(recorded_at desc);
+create index idx_token_usage_agent_recorded
+  on public.agent_token_usage(agent_id, recorded_at desc);
+
+alter table public.agent_token_usage enable row level security;
+
+create policy "authenticated users can read token usage"
+  on public.agent_token_usage for select to authenticated using (true);
+create policy "authenticated users can insert token usage"
+  on public.agent_token_usage for insert to authenticated with check (true);
+```
+
+### Migration 11: Audit Log Hardening
+
+**File:** `supabase/migrations/20260304000011_v4_audit_log.sql`
+
+```sql
+-- Create if not exists (V3 may have created it already)
+create table if not exists public.audit_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id),
+  user_email text,
+  action text not null,
+  entity_type text not null,
+  entity_id uuid not null,
+  old_values jsonb,
+  new_values jsonb,
+  change_reason text,
+  ip_address text,
+  created_at timestamptz not null default now()
+);
+
+-- Add user_email if missing (V3 may have omitted)
+alter table public.audit_log add column if not exists user_email text;
+
+create index if not exists idx_audit_log_created_at on public.audit_log(created_at desc);
+create index if not exists idx_audit_log_user_email on public.audit_log(user_email);
+create index if not exists idx_audit_log_action on public.audit_log(action);
+create index if not exists idx_audit_log_entity on public.audit_log(entity_type, entity_id);
+
+alter table public.audit_log enable row level security;
+
+-- Immutable: select and insert only, no update or delete
+create policy "authenticated users can read audit_log"
+  on public.audit_log for select to authenticated using (true);
+create policy "authenticated users can insert audit_log"
+  on public.audit_log for insert to authenticated with check (true);
+```
+
+### Post-Migration: Type Regeneration
+
+After all migrations are applied:
+```bash
+npx supabase gen types typescript --linked > src/lib/database.types.ts
+```
+

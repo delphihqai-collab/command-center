@@ -12,6 +12,10 @@ export type AgentReport = Database["public"]["Tables"]["agent_reports"]["Row"];
 export type AgentLog = Database["public"]["Tables"]["agent_logs"]["Row"];
 export type LeadStageHistory = Database["public"]["Tables"]["lead_stage_history"]["Row"];
 export type ClientHealthHistory = Database["public"]["Tables"]["client_health_history"]["Row"];
+export type ChatConversation = Database["public"]["Tables"]["chat_conversations"]["Row"];
+export type ChatMessage = Database["public"]["Tables"]["chat_messages"]["Row"];
+export type AgentTokenUsage = Database["public"]["Tables"]["agent_token_usage"]["Row"];
+export type AuditLogEntry = Database["public"]["Tables"]["audit_log"]["Row"];
 
 export type ServerActionResult<T = void> =
   | { success: true; data?: T }

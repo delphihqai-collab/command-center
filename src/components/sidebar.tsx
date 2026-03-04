@@ -5,13 +5,21 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
+  Building2,
   Target,
   Users,
   FileText,
   Receipt,
   Bot,
   ShieldCheck,
+  MessageSquare,
+  DollarSign,
   BookOpen,
+  Monitor,
+  Brain,
+  ScrollText,
+  ClipboardList,
+  Server,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -19,13 +27,21 @@ import { logout } from "@/app/(auth)/actions";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/office", label: "The Office", icon: Building2 },
   { href: "/pipeline", label: "Pipeline", icon: Target },
   { href: "/clients", label: "Clients", icon: Users },
   { href: "/proposals", label: "Proposals", icon: FileText },
   { href: "/invoices", label: "Invoices", icon: Receipt },
-  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/approvals", label: "Approvals", icon: ShieldCheck },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/costs", label: "Costs", icon: DollarSign },
   { href: "/knowledge", label: "Knowledge", icon: BookOpen },
+  { href: "/agents", label: "Agents", icon: Bot },
+  { href: "/sessions", label: "Sessions", icon: Monitor },
+  { href: "/memory", label: "Memory", icon: Brain },
+  { href: "/logs", label: "Logs", icon: ScrollText },
+  { href: "/audit-log", label: "Audit Log", icon: ClipboardList },
+  { href: "/gateway", label: "Gateway", icon: Server },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

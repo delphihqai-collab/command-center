@@ -23,19 +23,34 @@ src/
 │   │   ├── invoices/
 │   │   ├── agents/
 │   │   ├── approvals/
+│   │   ├── office/       ← The Office — pixel-art agent grid
+│   │   ├── chat/         ← Chat panel (per-agent conversations)
+│   │   ├── costs/        ← Token/cost tracking dashboard
+│   │   ├── sessions/     ← Agent session monitoring
+│   │   ├── memory/       ← Memory file browser
+│   │   ├── logs/         ← Unified log viewer
+│   │   ├── audit-log/    ← Immutable audit trail
+│   │   ├── gateway/      ← Gateway config panel
 │   │   ├── knowledge/
 │   │   └── settings/
 │   ├── (auth)/         ← Login page + server actions
+│   ├── api/
+│   │   ├── memory/     ← Route handler for filesystem memory access
+│   │   └── logs/journal/ ← Route handler for journalctl output
 │   └── layout.tsx
 ├── components/
 │   ├── ui/             ← shadcn/ui primitives (do not edit structure)
 │   ├── sidebar.tsx
+│   ├── realtime-refresh.tsx ← Generic Supabase Realtime subscription
 │   └── status-badge.tsx
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts   ← Browser client (use in Client Components)
 │   │   └── server.ts   ← Server client (use in Server Components + API routes)
 │   ├── database.types.ts ← Generated from Supabase schema (do not edit manually)
+│   ├── memory-paths.ts  ← Agent memory directory paths
+│   ├── model-costs.ts   ← Token cost constants and calculator
+│   ├── types.ts         ← Type aliases from database.types.ts
 │   └── utils.ts
 └── middleware.ts        ← Auth guard — redirects unauthenticated requests to /login
 ```
@@ -92,14 +107,51 @@ src/
 
 ---
 
+## Agent Fleet
+
+8 agents in a commercial hierarchy. All features must support all agents — never build for HERMES only.
+
+| Slug | Name | Rank | Status |
+|------|------|------|--------|
+| hermes | HERMES | director | active |
+| ae | Account Executive | senior | active |
+| am | Account Manager | senior | active |
+| sdr | SDR | mid | active |
+| finance | Finance Agent | mid | active |
+| legal | Legal Agent | mid | built_not_calibrated |
+| market-intelligence | Market Intelligence | mid | active |
+| knowledge-curator | Knowledge Curator | junior | active |
+
+Agent statuses: `active`, `idle`, `built_not_calibrated`, `offline`
+
+---
+
 ## Database Schema
 
-16 tables across 7 domains. All tables have UUID primary keys, `created_at`, and soft-delete via `archived_at` where applicable.
+21 tables across 9 domains. All tables have UUID primary keys, `created_at`, and soft-delete via `archived_at` where applicable.
 
-**Domains:** agents · agent_reports · agent_logs · leads · lead_stage_history · proposals · clients · client_health_history · invoices · approvals · deal_learnings · onboarding_patterns · heartbeats
+**Core:** agents · agent_reports · agent_logs · heartbeats
+**Commercial:** leads · lead_stage_history · proposals · clients · client_health_history · invoices · approvals · deal_learnings · onboarding_patterns
+**Chat:** chat_conversations · chat_messages
+**Costs:** agent_token_usage
+**Audit:** audit_log
+**Transitions:** valid_stage_transitions · valid_approval_transitions
 
 Migrations: `supabase/migrations/`
 Seed: `supabase/seed.sql` (agents table — 8 rows)
+
+---
+
+## Route Handlers — Filesystem Access Pattern
+
+When Command Center needs to read local filesystem data (agent memory files, system journal), use Next.js Route Handlers in `src/app/api/`:
+
+- Always check Supabase auth session before serving data
+- Validate and sanitize all path parameters to prevent directory traversal
+- Use `execFile` (not `exec`) for shell commands to prevent injection
+- These are server-only — never expose filesystem paths to the client bundle
+
+Examples: `/api/memory/route.ts` (agent memory files), `/api/logs/journal/route.ts` (journalctl output)
 
 ---
 

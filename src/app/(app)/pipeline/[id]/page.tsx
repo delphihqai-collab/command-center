@@ -13,6 +13,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
+import { StageAdvanceButton } from "./_components/stage-advance-button";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -68,6 +69,7 @@ export default async function LeadDetailPage({ params }: Props) {
             {lead.company_name}
           </h1>
           <StatusBadge status={lead.stage} />
+          <StageAdvanceButton leadId={lead.id} currentStage={lead.stage} />
         </div>
         <div className="mt-1 flex gap-4 text-sm text-zinc-400">
           {lead.contact_name && <span>{lead.contact_name}</span>}

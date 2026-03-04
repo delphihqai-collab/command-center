@@ -130,6 +130,53 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_token_usage: {
+        Row: {
+          agent_id: string
+          cost_usd: number
+          created_at: string
+          id: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          recorded_at: string
+          session_key: string | null
+          task_description: string | null
+        }
+        Insert: {
+          agent_id: string
+          cost_usd: number
+          created_at?: string
+          id?: string
+          input_tokens: number
+          model: string
+          output_tokens: number
+          recorded_at?: string
+          session_key?: string | null
+          task_description?: string | null
+        }
+        Update: {
+          agent_id?: string
+          cost_usd?: number
+          created_at?: string
+          id?: string
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          recorded_at?: string
+          session_key?: string | null
+          task_description?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_token_usage_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       approvals: {
         Row: {
           action_summary: string
@@ -149,6 +196,10 @@ export type Database = {
           risk_if_delayed: string | null
           risks_if_approved: string | null
           risks_if_rejected: string | null
+          stage: string
+          stage_advanced_at: string | null
+          stage_advanced_by: string | null
+          stage_history: Json | null
           status: string
           updated_at: string
           urgency: string
@@ -171,6 +222,10 @@ export type Database = {
           risk_if_delayed?: string | null
           risks_if_approved?: string | null
           risks_if_rejected?: string | null
+          stage?: string
+          stage_advanced_at?: string | null
+          stage_advanced_by?: string | null
+          stage_history?: Json | null
           status?: string
           updated_at?: string
           urgency: string
@@ -193,6 +248,10 @@ export type Database = {
           risk_if_delayed?: string | null
           risks_if_approved?: string | null
           risks_if_rejected?: string | null
+          stage?: string
+          stage_advanced_at?: string | null
+          stage_advanced_by?: string | null
+          stage_history?: Json | null
           status?: string
           updated_at?: string
           urgency?: string
@@ -203,6 +262,109 @@ export type Database = {
             columns: ["created_by_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          agent_id: string | null
+          change_reason: string | null
+          changes: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          user_email: string | null
+        }
+        Insert: {
+          action: string
+          agent_id?: string | null
+          change_reason?: string | null
+          changes?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_email?: string | null
+        }
+        Update: {
+          action?: string
+          agent_id?: string | null
+          change_reason?: string | null
+          changes?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_email?: string | null
+        }
+        Relationships: []
+      }
+      chat_conversations: {
+        Row: {
+          agent_id: string
+          archived_at: string | null
+          created_at: string
+          id: string
+          title: string
+        }
+        Insert: {
+          agent_id: string
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          title: string
+        }
+        Update: {
+          agent_id?: string
+          archived_at?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_conversations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -781,6 +943,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      valid_approval_transitions: {
+        Row: {
+          created_at: string
+          from_stage: string
+          id: string
+          to_stage: string
+        }
+        Insert: {
+          created_at?: string
+          from_stage: string
+          id?: string
+          to_stage: string
+        }
+        Update: {
+          created_at?: string
+          from_stage?: string
+          id?: string
+          to_stage?: string
+        }
+        Relationships: []
       }
       valid_stage_transitions: {
         Row: {

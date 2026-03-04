@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { ApprovalActions } from "./_components/approval-actions";
-import { AutoRefresh } from "./_components/auto-refresh";
+import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 interface Props {
   searchParams: Promise<{ status?: string }>;
@@ -132,7 +132,7 @@ export default async function ApprovalsPage({ searchParams }: Props) {
         <h1 className="text-2xl font-semibold text-zinc-50">Approvals</h1>
       </div>
 
-      <AutoRefresh intervalMs={60000} />
+      <RealtimeRefresh table="approvals" />
 
       <Suspense fallback={<Skeleton className="h-96 w-full rounded-lg" />}>
         <ApprovalsList statusFilter={params.status} />
