@@ -458,3 +458,9 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 - `src/app/(app)/cron/page.tsx` — replaced Supabase query with `execFileAsync(OPENCLAW_BIN, ["cron", "list", "--json"])`. Displays agent, schedule expression, session target, last run time/duration, next run, consecutive errors. Added `force-dynamic` export.
 - `src/app/(app)/cron/actions.ts` — rewired `toggleCronJob` and `triggerCronJob` to use `openclaw cron edit` and `openclaw cron run` CLI commands instead of Supabase updates.
 - `src/app/(app)/cron/_components/cron-actions.tsx` — updated imports to match renamed action functions.
+
+### 2026-03-05 — Cron page: group jobs by agent
+
+**Scope:** Reorganised the Scheduler page to group cron jobs by agent instead of a flat list. Each agent gets a labelled section with a Bot icon, agent display name, and job count. Jobs within each group show schedule, target, last/next run — the redundant "Agent:" field was removed since the grouping makes it obvious. Agent groups are ordered: Hermes first, then workers (SDR, AE, AM), then specialists.
+**Changes:**
+- `src/app/(app)/cron/page.tsx` — added `AGENT_DISPLAY_NAMES` map, `AGENT_ORDER` sort list, `groupJobsByAgent()` helper. Replaced flat job list with grouped sections. Removed per-job "Agent:" label. Added `Bot` icon import.
