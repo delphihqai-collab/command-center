@@ -329,6 +329,22 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 - Old standalone soul editor at `/agents/[slug]/soul` still exists (can be removed; workspace editor supersedes it)
 - Agent `workspace_path` must be set in Supabase — if null, shows "No workspace files found"
 
+### 2026-03-05 — Section-Based Workspace Editor (Session 10)
+
+**What:** Rewrote the workspace file editor from a raw textarea into a structured section-based editor. Markdown files with `##` headings are parsed into collapsible accordion sections. Each section can be expanded to edit its heading and content independently. Files without `##` headings fall back to a plain textarea.
+
+**Features:**
+- Markdown parsing: splits on `## ` headings, preserves preamble (content before first `##`)
+- Collapsible accordion: each section shows heading + line count, click to expand/edit
+- Section operations: rename heading, edit content, add new section, delete section
+- Toggle all button to expand/collapse all sections at once
+- Preamble editing via a special "File Header" collapsible section
+- Lossless round-trip: `parseMd()` → edit → `assembleMd()` preserves original formatting
+- Raw textarea fallback for flat files (e.g. IDENTITY.md with no `##` sections)
+
+**Files changed:**
+- `src/app/(app)/agents/[slug]/_components/workspace-files.tsx` — complete rewrite (~370 lines)
+
 ---
 
 ### 2026-03-05 — Copilot Instructions Overhaul (Session 8)
