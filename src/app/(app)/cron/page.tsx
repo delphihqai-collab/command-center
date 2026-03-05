@@ -1,10 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/status-badge";
-import { formatDistanceToNow, format } from "date-fns";
-import { CronActions } from "./_components/cron-actions";
+import { Card, CardContent } from "@/components/ui/card";
+import { CronJobList } from "./_components/cron-job-list";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { Clock, AlertTriangle, Bot } from "lucide-react";
+import { Clock, AlertTriangle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -68,15 +66,7 @@ function agentSortKey(agentId: string): number {
   return idx === -1 ? AGENT_ORDER.length : idx;
 }
 
-function formatSchedule(schedule: CronSchedule): string {
-  if (schedule.kind === "cron") {
-    const tz = schedule.tz ? ` (${schedule.tz})` : "";
-    return `${schedule.expr}${tz}`;
-  }
-  return `${schedule.kind}: ${schedule.expr}`;
-}
-
-function groupJobsByAgent(jobs: CronJob[]): { agentId: string; label: string; jobs: CronJob[] }[] {
+function groupJobsByAgent(jobs: CronJob[]) {
   const grouped = new Map<string, CronJob[]>();
   for (const job of jobs) {
     const existing = grouped.get(job.agentId);
@@ -138,68 +128,7 @@ export default async function CronPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-6">
-          {groups.map((group) => (
-            <div key={group.agentId} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Bot className="h-4 w-4 text-zinc-400" />
-                <h2 className="text-sm font-semibold text-zinc-300">
-                  {group.label}
-                </h2>
-                <span className="text-xs text-zinc-500">
-                  {group.jobs.length} job{group.jobs.length !== 1 ? "s" : ""}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {group.jobs.map((job) => (
-                  <Card key={job.id} className="border-zinc-800 bg-zinc-900">
-                    <CardContent className="flex items-center gap-4 py-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium text-zinc-50">{job.name}</p>
-                          <StatusBadge status={job.enabled ? "enabled" : "disabled"} />
-                          {job.state.lastStatus && (
-                            <StatusBadge status={job.state.lastStatus} />
-                          )}
-                          {(job.state.consecutiveErrors ?? 0) > 0 && (
-                            <span className="text-xs text-red-400">
-                              {job.state.consecutiveErrors} consecutive error{job.state.consecutiveErrors !== 1 ? "s" : ""}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-zinc-500">
-                          <span>
-                            Schedule: <code className="text-zinc-400">{formatSchedule(job.schedule)}</code>
-                          </span>
-                          <span>
-                            Target: <code className="text-zinc-400">{job.sessionTarget}</code>
-                          </span>
-                          {job.state.lastRunAtMs && (
-                            <span>
-                              Last run:{" "}
-                              {formatDistanceToNow(new Date(job.state.lastRunAtMs), {
-                                addSuffix: true,
-                              })}
-                              {job.state.lastDurationMs != null && (
-                                <> ({(job.state.lastDurationMs / 1000).toFixed(1)}s)</>
-                              )}
-                            </span>
-                          )}
-                          {job.state.nextRunAtMs && (
-                            <span>
-                              Next: {format(new Date(job.state.nextRunAtMs), "MMM d, HH:mm")}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <CronActions id={job.id} enabled={job.enabled} />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        <CronJobList groups={groups} />
       )}
     </div>
   );

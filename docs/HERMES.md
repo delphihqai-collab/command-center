@@ -492,3 +492,17 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
   - File header bar with filename, agent label, line count
   - Loading spinner state for content fetching
   - Consistent zinc-800/900/950 palette, indigo-400 accents
+
+### 2026-03-05 — Costs page: rewired to OpenClaw data
+
+**Scope:** The Token & Cost Tracking page was reading from the empty `agent_token_usage` Supabase table — showing $0 everywhere. Rewired to read actual usage from two OpenClaw sources: (1) cron run JSONL files (`~/.openclaw/cron/runs/*.jsonl`) for historical per-run token usage, and (2) live session data from `openclaw sessions --all-agents --json` for active session tokens. Costs are calculated using model rates from `model-costs.ts`.
+**Changes:**
+- `src/app/(app)/costs/page.tsx` — complete rewrite. Reads cron run JSONL files + session CLI data. KPIs sum costs by time period from real timestamps. Agent breakdown merges both sources. Cost trend chart groups by date. Removed Supabase `agent_token_usage` queries and `RealtimeRefresh`.
+- `src/app/(app)/costs/_components/cost-export-button.tsx` — now receives data as props from the server component instead of querying Supabase client-side.
+
+### 2026-03-05 — Cron page: agent filter pills
+
+**Scope:** Added agent filter pills at the top of the Scheduler page for quick filtering. Extracted job rendering into a `CronJobList` client component with filter state.
+**Changes:**
+- `src/app/(app)/cron/_components/cron-job-list.tsx` — new client component. Horizontal pill buttons for "All" + each agent. Clicking a pill filters to show only that agent's jobs. Renders the same grouped layout (Bot icon, agent name, job cards).
+- `src/app/(app)/cron/page.tsx` — simplified server component. Delegates all rendering to `CronJobList` client component. Keeps data fetching and grouping logic server-side.

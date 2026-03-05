@@ -2,32 +2,33 @@
 
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
 
-export function CostExportButton() {
-  async function handleExport() {
-    const supabase = createClient();
-    const { data } = await supabase
-      .from("agent_token_usage")
-      .select("*, agents!agent_token_usage_agent_id_fkey(name, slug)")
-      .order("recorded_at", { ascending: false });
+interface ExportRow {
+  agent: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cost: number;
+  source: string;
+  timestamp: string;
+}
 
-    if (!data || data.length === 0) return;
+export function CostExportButton({ data }: { data: ExportRow[] }) {
+  function handleExport() {
+    if (data.length === 0) return;
 
-    const header = "agent,model,input_tokens,output_tokens,cost_usd,session_key,task_description,recorded_at";
-    const rows = data.map((r) => {
-      const agentName = (r.agents as unknown as { name: string } | null)?.name ?? "";
-      return [
-        agentName,
+    const header = "agent,model,input_tokens,output_tokens,cost_usd,source,timestamp";
+    const rows = data.map((r) =>
+      [
+        r.agent,
         r.model,
-        r.input_tokens,
-        r.output_tokens,
-        r.cost_usd,
-        r.session_key ?? "",
-        (r.task_description ?? "").replace(/,/g, ";"),
-        r.recorded_at,
-      ].join(",");
-    });
+        r.inputTokens,
+        r.outputTokens,
+        r.cost.toFixed(6),
+        r.source,
+        r.timestamp,
+      ].join(",")
+    );
 
     const csv = [header, ...rows].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -44,6 +45,7 @@ export function CostExportButton() {
       size="sm"
       variant="outline"
       onClick={handleExport}
+      disabled={data.length === 0}
       className="gap-1 border-zinc-700 text-xs"
     >
       <Download className="h-3 w-3" />
