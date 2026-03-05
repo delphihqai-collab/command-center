@@ -3,8 +3,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { format } from "date-fns";
-import { CalibrationTracker } from "./_components/calibration-tracker";
+import { format, formatDistanceToNow } from "date-fns";
+import { Sparkles } from "lucide-react";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -22,7 +22,7 @@ export default async function AgentDetailPage({ params }: Props) {
 
   if (!agent) notFound();
 
-  const [reportsRes, logsRes, gatesRes] = await Promise.all([
+  const [reportsRes, logsRes, tasksRes, commsRes] = await Promise.all([
     supabase
       .from("agent_reports")
       .select("*")
@@ -36,15 +36,25 @@ export default async function AgentDetailPage({ params }: Props) {
       .order("created_at", { ascending: false })
       .limit(50),
     supabase
-      .from("calibration_gates")
-      .select("*")
-      .eq("agent_id", agent.id)
-      .order("created_at", { ascending: true }),
+      .from("tasks")
+      .select("id, title, status, priority, updated_at")
+      .eq("assigned_to", agent.id)
+      .is("archived_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("agent_comms")
+      .select("id, message, channel, created_at, from_agent:from_agent_id(name), to_agent:to_agent_id(name)")
+      .or(`from_agent_id.eq.${agent.id},to_agent_id.eq.${agent.id}`)
+      .order("created_at", { ascending: false })
+      .limit(10),
   ]);
 
   const reports = reportsRes.data ?? [];
   const logs = logsRes.data ?? [];
-  const gates = gatesRes.data ?? [];
+  const tasks = tasksRes.data ?? [];
+  const comms = commsRes.data ?? [];
+  const capabilities = (agent.capabilities ?? []) as string[];
 
   return (
     <div className="space-y-6">
@@ -83,6 +93,14 @@ export default async function AgentDetailPage({ params }: Props) {
               <p className="text-xs text-zinc-500">Model</p>
               <p className="font-mono text-sm text-zinc-50">{agent.model}</p>
             </div>
+            {agent.last_seen && (
+              <div>
+                <p className="text-xs text-zinc-500">Last Seen</p>
+                <p className="text-sm text-zinc-400">
+                  {formatDistanceToNow(new Date(agent.last_seen), { addSuffix: true })}
+                </p>
+              </div>
+            )}
             {agent.workspace_path && (
               <div className="col-span-2">
                 <p className="text-xs text-zinc-500">Workspace</p>
@@ -97,14 +115,100 @@ export default async function AgentDetailPage({ params }: Props) {
                 <p className="text-sm text-zinc-300">{agent.notes}</p>
               </div>
             )}
+            {capabilities.length > 0 && (
+              <div className="col-span-full">
+                <p className="text-xs text-zinc-500">Capabilities</p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {capabilities.map((cap: string) => (
+                    <span
+                      key={cap}
+                      className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-xs text-indigo-400 border border-indigo-500/20"
+                    >
+                      {cap}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mt-4">
+            <Link
+              href={`/agents/${agent.slug}/soul`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Edit SOUL
+            </Link>
           </div>
         </CardContent>
       </Card>
 
-      {/* Calibration Tracker — only for built_not_calibrated agents */}
-      {agent.status === "built_not_calibrated" && gates.length > 0 && (
-        <CalibrationTracker gates={gates} />
-      )}
+      {/* Assigned Tasks */}
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-zinc-400">
+            Assigned Tasks ({tasks.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {tasks.length === 0 ? (
+            <p className="text-sm text-zinc-500">No assigned tasks.</p>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/tasks/${t.id}`}
+                  className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-950 p-2 transition-colors hover:border-zinc-700"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-zinc-50">{t.title}</span>
+                    <StatusBadge status={t.status} />
+                    <StatusBadge status={t.priority} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recent Comms */}
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader>
+          <CardTitle className="text-sm font-medium text-zinc-400">
+            Recent Comms ({comms.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {comms.length === 0 ? (
+            <p className="text-sm text-zinc-500">No communications.</p>
+          ) : (
+            <div className="space-y-2">
+              {comms.map((c) => (
+                <div
+                  key={c.id}
+                  className="rounded border border-zinc-800 bg-zinc-950 p-2"
+                >
+                  <div className="flex items-center gap-2 text-xs text-zinc-500">
+                    <span className="text-indigo-400">
+                      {(c.from_agent as unknown as { name: string } | null)?.name ?? "?"}
+                    </span>
+                    <span>→</span>
+                    <span>
+                      {(c.to_agent as unknown as { name: string } | null)?.name ?? "broadcast"}
+                    </span>
+                    <span className="ml-auto">
+                      {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm text-zinc-300">{c.message}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Reports */}
       <Card className="border-zinc-800 bg-zinc-900">

@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Command Center — Delphi",
-  description: "Delphi operations backoffice",
+  title: "Mission Control",
+  description: "AI Agent Orchestration Dashboard",
 };
 
 export default function RootLayout({

@@ -6,17 +6,10 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Building2,
-  Target,
-  Users,
-  FileText,
-  Receipt,
   Bot,
-  ShieldCheck,
   Bell,
   MessageSquare,
   DollarSign,
-  BarChart3,
-  BookOpen,
   Monitor,
   Brain,
   ScrollText,
@@ -24,26 +17,35 @@ import {
   Server,
   Settings,
   LogOut,
+  KanbanSquare,
+  Radio,
+  Megaphone,
+  Webhook,
+  GitBranch,
+  Clock,
+  BellRing,
+  Plug,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/tasks", label: "Tasks", icon: KanbanSquare },
   { href: "/office", label: "The Office", icon: Building2 },
-  { href: "/pipeline", label: "Pipeline", icon: Target },
-  { href: "/clients", label: "Clients", icon: Users },
-  { href: "/proposals", label: "Proposals", icon: FileText },
-  { href: "/invoices", label: "Invoices", icon: Receipt },
-  { href: "/alerts", label: "Alerts", icon: Bell },
-  { href: "/approvals", label: "Approvals", icon: ShieldCheck },
+  { href: "/agents", label: "Agent Squad", icon: Bot },
   { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/comms", label: "Agent Comms", icon: Radio },
+  { href: "/standup", label: "Standup", icon: Megaphone },
   { href: "/costs", label: "Costs", icon: DollarSign },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
-  { href: "/knowledge", label: "Knowledge", icon: BookOpen },
-  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/sessions", label: "Sessions", icon: Monitor },
   { href: "/memory", label: "Memory", icon: Brain },
   { href: "/logs", label: "Logs", icon: ScrollText },
+  { href: "/alerts", label: "Alerts", icon: Bell },
+  { href: "/webhooks", label: "Webhooks", icon: Webhook },
+  { href: "/workflows", label: "Workflows", icon: GitBranch },
+  { href: "/cron", label: "Scheduler", icon: Clock },
+  { href: "/notifications", label: "Notifications", icon: BellRing },
+  { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/audit-log", label: "Audit Log", icon: ClipboardList },
   { href: "/gateway", label: "Gateway", icon: Server },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -51,8 +53,8 @@ const navItems = [
 
 const mobileNavItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/pipeline", label: "Pipeline", icon: Target },
-  { href: "/approvals", label: "Approvals", icon: ShieldCheck },
+  { href: "/tasks", label: "Tasks", icon: KanbanSquare },
+  { href: "/agents", label: "Agents", icon: Bot },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/office", label: "Office", icon: Building2 },
 ];
@@ -67,10 +69,10 @@ export function Sidebar() {
         <div className="flex h-14 items-center border-b border-zinc-800 px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600">
-              <span className="text-xs font-bold text-white">D</span>
+              <span className="text-xs font-bold text-white">MC</span>
             </div>
             <span className="text-sm font-semibold text-zinc-50">
-              Command Center
+              Mission Control
             </span>
           </Link>
         </div>

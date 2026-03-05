@@ -1,36 +1,36 @@
-import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: Request) {
-  const q = new URL(req.url).searchParams.get("q");
-  if (!q || q.length < 2) return NextResponse.json({ results: {} });
-
+export async function GET(request: NextRequest) {
   const supabase = await createClient();
-  const tsquery = q.trim().split(/\s+/).join(" & ");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [leads, clients, proposals] = await Promise.all([
+  const q = request.nextUrl.searchParams.get("q")?.trim();
+  if (!q || q.length < 2) {
+    return NextResponse.json({ results: { tasks: [], agents: [] } });
+  }
+
+  const tsQuery = q.split(/\s+/).filter(Boolean).join(" & ");
+
+  const [tasksRes, agentsRes] = await Promise.all([
     supabase
-      .from("leads")
-      .select("id, company_name, sector, stage")
-      .textSearch("search_vector", tsquery)
+      .from("tasks")
+      .select("id, title, status, priority")
+      .textSearch("search_vector", tsQuery)
+      .is("archived_at", null)
       .limit(5),
     supabase
-      .from("clients")
-      .select("id, company_name, sector")
-      .textSearch("search_vector", tsquery)
-      .limit(5),
-    supabase
-      .from("proposals")
-      .select("id, scope_summary, status")
-      .textSearch("search_vector", tsquery)
+      .from("agents")
+      .select("id, slug, name, status")
+      .ilike("name", `%${q}%`)
       .limit(5),
   ]);
 
   return NextResponse.json({
     results: {
-      leads: leads.data ?? [],
-      clients: clients.data ?? [],
-      proposals: proposals.data ?? [],
+      tasks: tasksRes.data ?? [],
+      agents: agentsRes.data ?? [],
     },
   });
 }

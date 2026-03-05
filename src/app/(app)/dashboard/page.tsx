@@ -6,16 +6,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import {
-  Target,
-  FileText,
-  Users,
-  DollarSign,
-  AlertTriangle,
-  Activity,
+  KanbanSquare,
+  Eye,
+  Bot,
   Bell,
+  DollarSign,
+  Activity,
 } from "lucide-react";
-import { PipelineFunnelChart } from "./_components/pipeline-funnel-chart";
-import { PIPELINE_STAGES } from "@/lib/types";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 
 function CardSkeleton() {
@@ -27,89 +24,86 @@ async function KPICards() {
   const supabase = await createClient();
 
   const now = new Date();
-  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  const [leadsWeekRes, proposalsSentRes, clientsRes, revenueRes, alertsRes] =
+  const [activeTasksRes, reviewTasksRes, agentsRes, alertsRes, costsRes] =
     await Promise.all([
       supabase
-        .from("leads")
+        .from("tasks")
         .select("id", { count: "exact", head: true })
         .is("archived_at", null)
-        .gte("created_at", oneWeekAgo),
+        .not("status", "in", '("inbox","done")'),
       supabase
-        .from("proposals")
+        .from("tasks")
         .select("id", { count: "exact", head: true })
-        .eq("status", "sent")
+        .eq("status", "review")
         .is("archived_at", null),
       supabase
-        .from("clients")
-        .select("id, health_status")
-        .is("archived_at", null),
-      supabase
-        .from("clients")
-        .select("monthly_value")
-        .eq("health_status", "healthy")
-        .is("archived_at", null),
+        .from("agents")
+        .select("id, status"),
       supabase
         .from("alert_events")
         .select("id", { count: "exact", head: true })
-        .eq("resolved", false)
-        .eq("severity", "critical"),
+        .eq("resolved", false),
+      supabase
+        .from("agent_token_usage")
+        .select("cost_usd")
+        .gte("created_at", monthStart),
     ]);
 
-  const leadsThisWeek = leadsWeekRes.count ?? 0;
-  const proposalsSent = proposalsSentRes.count ?? 0;
-  const clients = clientsRes.data ?? [];
-  const activeClients = clients.length;
-  const atRiskClients = clients.filter(
-    (c) => c.health_status === "at_risk"
-  ).length;
-  const monthlyRevenue = (revenueRes.data ?? []).reduce(
-    (sum, c) => sum + c.monthly_value,
+  const activeTasks = activeTasksRes.count ?? 0;
+  const reviewTasks = reviewTasksRes.count ?? 0;
+  const agents = agentsRes.data ?? [];
+  const activeAgents = agents.filter((a) => a.status === "active").length;
+  const openAlerts = alertsRes.count ?? 0;
+  const mtdCost = (costsRes.data ?? []).reduce(
+    (sum, r) => sum + (r.cost_usd ?? 0),
     0
   );
-  const criticalAlerts = alertsRes.count ?? 0;
 
   const kpis = [
     {
-      label: "Leads This Week",
-      value: leadsThisWeek.toString(),
-      icon: Target,
+      label: "Active Tasks",
+      value: activeTasks.toString(),
+      icon: KanbanSquare,
       color: "text-indigo-400",
+      href: "/tasks",
     },
     {
-      label: "Proposals Sent",
-      value: proposalsSent.toString(),
-      icon: FileText,
-      color: "text-amber-400",
+      label: "In Review",
+      value: reviewTasks.toString(),
+      icon: Eye,
+      color: "text-purple-400",
+      href: "/tasks",
     },
     {
-      label: "Active Clients",
-      value: activeClients.toString(),
-      sub: atRiskClients > 0 ? `${atRiskClients} at risk` : undefined,
-      icon: Users,
+      label: "Active Agents",
+      value: `${activeAgents}/${agents.length}`,
+      icon: Bot,
       color: "text-emerald-400",
+      href: "/agents",
     },
     {
-      label: "Monthly Revenue",
-      value: `€${monthlyRevenue.toLocaleString("en-IE")}`,
+      label: "Open Alerts",
+      value: openAlerts.toString(),
+      icon: Bell,
+      color: openAlerts > 0 ? "text-red-400" : "text-zinc-400",
+      href: "/alerts",
+    },
+    {
+      label: "MTD Token Cost",
+      value: `$${mtdCost.toFixed(2)}`,
       icon: DollarSign,
       color: "text-emerald-400",
-    },
-    {
-      label: "Critical Alerts",
-      value: criticalAlerts.toString(),
-      icon: Bell,
-      color: criticalAlerts > 0 ? "text-red-400" : "text-zinc-400",
-      href: "/alerts",
+      href: "/costs",
     },
   ];
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {kpis.map((kpi) => {
-        const content = (
-          <Card key={kpi.label} className={`border-zinc-800 bg-zinc-900 ${kpi.href ? "transition-colors hover:border-zinc-700" : ""}`}>
+      {kpis.map((kpi) => (
+        <Link key={kpi.label} href={kpi.href}>
+          <Card className="border-zinc-800 bg-zinc-900 transition-colors hover:border-zinc-700">
             <CardContent className="flex items-center gap-4 p-4">
               <div className={`rounded-lg bg-zinc-950 p-2 ${kpi.color}`}>
                 <kpi.icon className="h-5 w-5" />
@@ -117,178 +111,126 @@ async function KPICards() {
               <div>
                 <p className="text-xs text-zinc-500">{kpi.label}</p>
                 <p className="text-2xl font-bold text-zinc-50">{kpi.value}</p>
-                {kpi.sub && (
-                  <p className="text-xs text-amber-400">{kpi.sub}</p>
-                )}
               </div>
             </CardContent>
           </Card>
-        );
-        if (kpi.href) {
-          return <Link key={kpi.label} href={kpi.href}>{content}</Link>;
-        }
-        return content;
-      })}
+        </Link>
+      ))}
     </div>
   );
 }
 
-/* ────────────── Pipeline Funnel ────────────── */
-async function PipelineFunnel() {
+/* ────────────── Recent Tasks ────────────── */
+async function RecentTasks() {
   const supabase = await createClient();
 
-  const { data: leads } = await supabase
-    .from("leads")
-    .select("stage")
-    .is("archived_at", null);
+  const { data: tasks } = await supabase
+    .from("tasks")
+    .select("id, title, status, priority, created_at, agents:assigned_to(name)")
+    .is("archived_at", null)
+    .order("created_at", { ascending: false })
+    .limit(10);
 
-  const allLeads = leads ?? [];
-
-  const funnelData = PIPELINE_STAGES.map((stage) => ({
-    stage,
-    count: allLeads.filter((l) => l.stage === stage).length,
-  }));
-
-  const totalActive = allLeads.filter(
-    (l) => l.stage !== "closed_won" && l.stage !== "closed_lost"
-  ).length;
+  const items = tasks ?? [];
 
   return (
     <Card className="border-zinc-800 bg-zinc-900">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium text-zinc-400">
-          Pipeline Funnel — {totalActive} active leads
+          Recent Tasks
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <PipelineFunnelChart data={funnelData} />
+        <RealtimeRefresh table="tasks" />
+        {items.length === 0 ? (
+          <p className="text-sm text-zinc-500">No tasks yet.</p>
+        ) : (
+          <div className="space-y-3">
+            {items.map((task) => (
+              <Link
+                key={task.id}
+                href={`/tasks/${task.id}`}
+                className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 transition-colors hover:border-zinc-700"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-zinc-50">{task.title}</p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <StatusBadge status={task.status} />
+                    <StatusBadge status={task.priority} />
+                    {task.agents && (
+                      <span className="text-xs text-zinc-500">
+                        {(task.agents as unknown as { name: string })?.name}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <span className="whitespace-nowrap text-xs text-zinc-500">
+                  {formatDistanceToNow(new Date(task.created_at), {
+                    addSuffix: true,
+                  })}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
-/* ────────────── Critical Flags + Approvals ────────────── */
-async function FlagsAndApprovals() {
+/* ────────────── Tasks By Agent ────────────── */
+async function TasksByAgent() {
   const supabase = await createClient();
 
-  const [flagsRes, approvalsRes] = await Promise.all([
+  const [agentsRes, tasksRes] = await Promise.all([
+    supabase.from("agents").select("id, name, slug, status").order("slug"),
     supabase
-      .from("agent_reports")
-      .select(
-        "id, agent_id, report_type, content, flag_level, created_at, agents!inner(name)"
-      )
-      .eq("flagged", true)
-      .order("created_at", { ascending: false })
-      .limit(10),
-    supabase
-      .from("approvals")
-      .select("id, urgency, action_summary, recipient, status, created_at")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false })
-      .limit(10),
+      .from("tasks")
+      .select("assigned_to, status")
+      .is("archived_at", null)
+      .not("status", "eq", "done"),
   ]);
 
-  const flags = flagsRes.data ?? [];
-  const approvals = approvalsRes.data ?? [];
+  const agents = agentsRes.data ?? [];
+  const tasks = tasksRes.data ?? [];
+
+  const countMap = new Map<string, number>();
+  for (const t of tasks) {
+    if (t.assigned_to) {
+      countMap.set(t.assigned_to, (countMap.get(t.assigned_to) ?? 0) + 1);
+    }
+  }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {/* Critical Flags */}
-      <Card className="border-zinc-800 bg-zinc-900">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-400">
-            <AlertTriangle className="h-4 w-4" />
-            Critical Flags
-            {flags.length > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500/20 px-1.5 text-xs font-medium text-red-400">
-                {flags.length}
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {flags.length === 0 ? (
-            <p className="text-sm text-zinc-500">No critical flags.</p>
-          ) : (
-            <div className="space-y-3">
-              {flags.map((flag) => (
-                <div
-                  key={flag.id}
-                  className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3"
-                >
-                  <StatusBadge status={flag.flag_level ?? "MEDIUM"} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-zinc-50">
-                      {(flag.agents as unknown as { name: string })?.name}
-                    </p>
-                    <p className="truncate text-xs text-zinc-400">
-                      {typeof flag.content === "object" &&
-                      flag.content !== null &&
-                      "summary" in flag.content
-                        ? String(
-                            (flag.content as Record<string, unknown>).summary
-                          )
-                        : flag.report_type}
-                    </p>
-                  </div>
-                  <span className="whitespace-nowrap text-xs text-zinc-500">
-                    {formatDistanceToNow(new Date(flag.created_at), {
-                      addSuffix: true,
-                    })}
-                  </span>
+    <Card className="border-zinc-800 bg-zinc-900">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-medium text-zinc-400">
+          Tasks by Agent
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {agents.map((agent) => {
+            const count = countMap.get(agent.id) ?? 0;
+            return (
+              <Link
+                key={agent.id}
+                href={`/agents/${agent.slug}`}
+                className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-950 p-2 transition-colors hover:border-zinc-700"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-zinc-50">{agent.name}</span>
+                  <StatusBadge status={agent.status} />
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Open Approvals */}
-      <Card className="border-zinc-800 bg-zinc-900">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-400">
-            Open Approvals
-            {approvals.length > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-amber-500/20 px-1.5 text-xs font-medium text-amber-400">
-                {approvals.length}
-              </span>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {approvals.length === 0 ? (
-            <p className="text-sm text-zinc-500">No open approvals.</p>
-          ) : (
-            <div className="space-y-3">
-              {approvals.map((approval) => (
-                <Link
-                  key={approval.id}
-                  href="/approvals"
-                  className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 transition-colors hover:border-zinc-700"
-                >
-                  <StatusBadge status={approval.urgency} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-zinc-50">
-                      {approval.action_summary}
-                    </p>
-                    {approval.recipient && (
-                      <p className="text-xs text-zinc-400">
-                        {approval.recipient}
-                      </p>
-                    )}
-                  </div>
-                  <span className="whitespace-nowrap text-xs text-zinc-500">
-                    {formatDistanceToNow(new Date(approval.created_at), {
-                      addSuffix: true,
-                    })}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+                <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-300">
+                  {count}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -311,7 +253,6 @@ async function AgentGrid() {
   const agents = agentsRes.data ?? [];
   const heartbeats = heartbeatsRes.data ?? [];
 
-  // Map latest heartbeat per agent slug (job_name often contains slug)
   const latestHeartbeat = new Map<string, { status: string; fired_at: string }>();
   for (const hb of heartbeats) {
     if (!latestHeartbeat.has(hb.job_name)) {
@@ -440,7 +381,7 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold text-zinc-50">Dashboard</h1>
         <p className="text-sm text-zinc-400">
-          Operational overview —{" "}
+          Mission Control —{" "}
           {new Date().toLocaleDateString("en-GB", {
             weekday: "long",
             year: "numeric",
@@ -454,13 +395,14 @@ export default function DashboardPage() {
         <KPICards />
       </Suspense>
 
-      <Suspense fallback={<CardSkeleton />}>
-        <PipelineFunnel />
-      </Suspense>
-
-      <Suspense fallback={<CardSkeleton />}>
-        <FlagsAndApprovals />
-      </Suspense>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Suspense fallback={<CardSkeleton />}>
+          <RecentTasks />
+        </Suspense>
+        <Suspense fallback={<CardSkeleton />}>
+          <TasksByAgent />
+        </Suspense>
+      </div>
 
       <Suspense fallback={<CardSkeleton />}>
         <AgentGrid />

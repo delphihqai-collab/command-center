@@ -1,12 +1,12 @@
--- Command Center — Seed: 8 agents (HERMES + 7 sub-agents)
+-- Mission Control — Seed: 6 generic orchestration agents
 -- Run after migrations: psql or via Supabase SQL editor
 
-insert into public.agents (slug, name, type, status, model, workspace_path, notes) values
-  ('hermes', 'HERMES', 'director', 'active', 'claude-sonnet', '/home/delphi/hermes', 'Commercial Director. Manages all sub-agents. Posts daily standups at 09:00, 12:00, 18:00.'),
-  ('sdr', 'SDR', 'sales', 'built_not_calibrated', 'claude-sonnet', '/home/delphi/hermes/agents/sdr', 'Lead qualification — qualifies every inbound lead against ICP and BANT framework.'),
-  ('account-executive', 'Account Executive', 'sales', 'built_not_calibrated', 'claude-sonnet', '/home/delphi/hermes/agents/account-executive', 'Discovery, proposal drafting, close — runs MEDDIC on every prospect.'),
-  ('account-manager', 'Account Manager', 'sales', 'built_not_calibrated', 'claude-sonnet', '/home/delphi/hermes/agents/account-manager', 'Post-signature client health, onboarding, renewal, churn prevention.'),
-  ('finance', 'Finance Agent', 'finance', 'built_not_calibrated', 'claude-haiku', '/home/delphi/hermes/agents/finance', 'Proposal pricing validation, margin protection, invoice tracking.'),
-  ('legal', 'Legal & Compliance', 'legal', 'built_not_calibrated', 'claude-sonnet', '/home/delphi/hermes/agents/legal', 'Contract review, GDPR compliance gate, SLA validation.'),
-  ('market-intelligence', 'Market Intelligence', 'intelligence', 'built_not_calibrated', 'claude-haiku', '/home/delphi/hermes/agents/market-intelligence', 'Competitor monitoring, sector signals, ICP intelligence.'),
-  ('knowledge-curator', 'Knowledge Curator', 'knowledge', 'built_not_calibrated', 'claude-sonnet', '/home/delphi/hermes/agents/knowledge-curator', 'Deal indexing, onboarding pattern indexing, cross-agent synthesis.');
+DELETE FROM public.agents;
+
+INSERT INTO public.agents (slug, name, type, status, model, workspace_path, notes) VALUES
+  ('orchestrator', 'Orchestrator', 'director', 'active', 'claude-sonnet-4-6', '/home/user/agents/orchestrator', 'Primary orchestration agent. Manages task distribution and standups.'),
+  ('coder', 'Coder', 'worker', 'active', 'claude-sonnet-4-6', '/home/user/agents/coder', 'Code generation and modification agent.'),
+  ('reviewer', 'Reviewer', 'worker', 'active', 'claude-sonnet-4-6', '/home/user/agents/reviewer', 'Code review and quality assurance agent.'),
+  ('researcher', 'Researcher', 'specialist', 'active', 'claude-sonnet-4-6', '/home/user/agents/researcher', 'Research and analysis agent.'),
+  ('devops', 'DevOps', 'specialist', 'active', 'claude-haiku-4-5-20251001', '/home/user/agents/devops', 'Infrastructure and deployment agent.'),
+  ('monitor', 'Monitor', 'observer', 'active', 'claude-haiku-4-5-20251001', '/home/user/agents/monitor', 'System monitoring and alerting agent.');

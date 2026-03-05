@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Search, FileText, Users, Target } from "lucide-react";
+import { Search, KanbanSquare, Bot } from "lucide-react";
 import useSWR from "swr";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
@@ -16,9 +16,8 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface SearchResults {
   results: {
-    leads: { id: string; company_name: string; sector: string | null; stage: string }[];
-    clients: { id: string; company_name: string; sector: string | null }[];
-    proposals: { id: string; scope_summary: string | null; status: string }[];
+    tasks: { id: string; title: string; status: string; priority: string }[];
+    agents: { id: string; slug: string; name: string; status: string }[];
   };
 }
 
@@ -54,9 +53,8 @@ export function CommandPalette() {
   const results = data?.results;
   const hasResults =
     results &&
-    ((results.leads?.length ?? 0) > 0 ||
-      (results.clients?.length ?? 0) > 0 ||
-      (results.proposals?.length ?? 0) > 0);
+    ((results.tasks?.length ?? 0) > 0 ||
+      (results.agents?.length ?? 0) > 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -69,7 +67,7 @@ export function CommandPalette() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search leads, clients, proposals..."
+            placeholder="Search tasks, agents..."
             className="border-0 bg-transparent text-sm text-zinc-50 placeholder:text-zinc-500 focus-visible:ring-0"
             autoFocus
           />
@@ -86,62 +84,39 @@ export function CommandPalette() {
               </p>
             )}
 
-            {results?.leads && results.leads.length > 0 && (
+            {results?.tasks && results.tasks.length > 0 && (
               <div className="mb-2">
                 <p className="px-2 py-1 text-xs font-medium text-zinc-500">
-                  Leads
+                  Tasks
                 </p>
-                {results.leads.map((lead) => (
+                {results.tasks.map((task) => (
                   <button
-                    key={lead.id}
-                    onClick={() => navigate(`/pipeline?stage=${lead.stage}`)}
+                    key={task.id}
+                    onClick={() => navigate(`/tasks/${task.id}`)}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
                   >
-                    <Target className="h-3.5 w-3.5 text-indigo-400" />
-                    <span>{lead.company_name}</span>
-                    {lead.sector && (
-                      <span className="text-xs text-zinc-500">
-                        {lead.sector}
-                      </span>
-                    )}
+                    <KanbanSquare className="h-3.5 w-3.5 text-indigo-400" />
+                    <span className="truncate">{task.title}</span>
+                    <span className="ml-auto text-xs text-zinc-500">{task.status}</span>
                   </button>
                 ))}
               </div>
             )}
 
-            {results?.clients && results.clients.length > 0 && (
-              <div className="mb-2">
-                <p className="px-2 py-1 text-xs font-medium text-zinc-500">
-                  Clients
-                </p>
-                {results.clients.map((client) => (
-                  <button
-                    key={client.id}
-                    onClick={() => navigate(`/clients/${client.id}`)}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
-                  >
-                    <Users className="h-3.5 w-3.5 text-emerald-400" />
-                    <span>{client.company_name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {results?.proposals && results.proposals.length > 0 && (
+            {results?.agents && results.agents.length > 0 && (
               <div>
                 <p className="px-2 py-1 text-xs font-medium text-zinc-500">
-                  Proposals
+                  Agents
                 </p>
-                {results.proposals.map((proposal) => (
+                {results.agents.map((agent) => (
                   <button
-                    key={proposal.id}
-                    onClick={() => navigate("/proposals")}
+                    key={agent.id}
+                    onClick={() => navigate(`/agents/${agent.slug}`)}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
                   >
-                    <FileText className="h-3.5 w-3.5 text-amber-400" />
-                    <span className="truncate">
-                      {proposal.scope_summary ?? `Proposal (${proposal.status})`}
-                    </span>
+                    <Bot className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>{agent.name}</span>
+                    <span className="ml-auto text-xs text-zinc-500">{agent.status}</span>
                   </button>
                 ))}
               </div>

@@ -4,8 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SignOutButton } from "./_components/sign-out-button";
 import {
-  NotificationsTab,
-  PipelineConfigTab,
+  SchedulerTab,
   DataRetentionTab,
   AgentModelsTab,
 } from "./_components/settings-tabs";
@@ -13,16 +12,14 @@ import {
 export default async function SettingsPage() {
   const supabase = await createClient();
 
-  const [userRes, agentsRes, notifRes, configRes] = await Promise.all([
+  const [userRes, agentsRes, configRes] = await Promise.all([
     supabase.auth.getUser(),
     supabase.from("agents").select("id, name, slug, status, type, model").order("slug"),
-    supabase.from("notification_preferences").select("*").limit(1).maybeSingle(),
-    supabase.from("pipeline_config").select("*"),
+    supabase.from("system_config").select("*"),
   ]);
 
   const user = userRes.data.user;
   const agents = agentsRes.data ?? [];
-  const notifPrefs = notifRes.data;
   const configs = (configRes.data ?? []).map((c) => ({
     key: c.key,
     value: c.value,
@@ -38,8 +35,7 @@ export default async function SettingsPage() {
       <Tabs defaultValue="account" className="space-y-4">
         <TabsList className="border-zinc-800 bg-zinc-900">
           <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="pipeline">Pipeline</TabsTrigger>
+          <TabsTrigger value="scheduler">Scheduler</TabsTrigger>
           <TabsTrigger value="agents">Agents</TabsTrigger>
           <TabsTrigger value="retention">Data Retention</TabsTrigger>
         </TabsList>
@@ -76,7 +72,7 @@ export default async function SettingsPage() {
             <CardContent className="space-y-3">
               <div>
                 <p className="text-xs text-zinc-500">Version</p>
-                <p className="text-sm text-zinc-50">V5 — Command Center</p>
+                <p className="text-sm text-zinc-50">V7 — Mission Control</p>
               </div>
               <Separator className="bg-zinc-800" />
               <div>
@@ -96,12 +92,8 @@ export default async function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="notifications">
-          <NotificationsTab prefs={notifPrefs} />
-        </TabsContent>
-
-        <TabsContent value="pipeline">
-          <PipelineConfigTab configs={configs} />
+        <TabsContent value="scheduler">
+          <SchedulerTab configs={configs} />
         </TabsContent>
 
         <TabsContent value="agents">

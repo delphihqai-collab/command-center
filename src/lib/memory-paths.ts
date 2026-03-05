@@ -1,12 +1,8 @@
 export const MEMORY_PATHS: Record<string, string> = {
-  hermes: "/home/delphi/.openclaw/workspace/memory",
-  ae: "/home/delphi/teams/commercial/ae/memory",
-  am: "/home/delphi/teams/commercial/am/memory",
-  sdr: "/home/delphi/teams/commercial/sdr/memory",
-  finance: "/home/delphi/teams/commercial/finance/memory",
-  legal: "/home/delphi/teams/commercial/legal/memory",
-  "market-intelligence":
-    "/home/delphi/teams/commercial/market-intelligence/memory",
-  "knowledge-curator":
-    "/home/delphi/teams/commercial/knowledge-curator/memory",
+  orchestrator: "/home/user/agents/orchestrator/memory",
+  coder: "/home/user/agents/coder/memory",
+  reviewer: "/home/user/agents/reviewer/memory",
+  researcher: "/home/user/agents/researcher/memory",
+  devops: "/home/user/agents/devops/memory",
+  monitor: "/home/user/agents/monitor/memory",
 };

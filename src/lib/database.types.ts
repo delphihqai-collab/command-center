@@ -7,90 +7,77 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
-      alert_events: {
+      agent_comms: {
         Row: {
+          channel: string | null
           created_at: string
-          entity_id: string
-          entity_type: string
+          from_agent_id: string
           id: string
           message: string
-          resolved: boolean
-          resolved_at: string | null
-          rule_id: string | null
-          severity: string
+          metadata: Json | null
+          to_agent_id: string | null
         }
         Insert: {
+          channel?: string | null
           created_at?: string
-          entity_id: string
-          entity_type: string
+          from_agent_id: string
           id?: string
           message: string
-          resolved?: boolean
-          resolved_at?: string | null
-          rule_id?: string | null
-          severity: string
+          metadata?: Json | null
+          to_agent_id?: string | null
         }
         Update: {
+          channel?: string | null
           created_at?: string
-          entity_id?: string
-          entity_type?: string
+          from_agent_id?: string
           id?: string
           message?: string
-          resolved?: boolean
-          resolved_at?: string | null
-          rule_id?: string | null
-          severity?: string
+          metadata?: Json | null
+          to_agent_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "alert_events_rule_id_fkey"
-            columns: ["rule_id"]
+            foreignKeyName: "agent_comms_from_agent_id_fkey"
+            columns: ["from_agent_id"]
             isOneToOne: false
-            referencedRelation: "alert_rules"
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_comms_to_agent_id_fkey"
+            columns: ["to_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
             referencedColumns: ["id"]
           },
         ]
-      }
-      alert_rules: {
-        Row: {
-          condition_field: string
-          condition_operator: string
-          condition_value: string
-          created_at: string
-          description: string | null
-          enabled: boolean
-          entity_type: string
-          id: string
-          name: string
-          severity: string
-        }
-        Insert: {
-          condition_field: string
-          condition_operator: string
-          condition_value: string
-          created_at?: string
-          description?: string | null
-          enabled?: boolean
-          entity_type: string
-          id?: string
-          name: string
-          severity?: string
-        }
-        Update: {
-          condition_field?: string
-          condition_operator?: string
-          condition_value?: string
-          created_at?: string
-          description?: string | null
-          enabled?: boolean
-          entity_type?: string
-          id?: string
-          name?: string
-          severity?: string
-        }
-        Relationships: []
       }
       agent_logs: {
         Row: {
@@ -174,50 +161,39 @@ export type Database = {
           },
         ]
       }
-      agents: {
+      agent_souls: {
         Row: {
-          created_at: string
+          agent_id: string
+          content: string
           id: string
-          model: string
-          name: string
-          notes: string | null
-          slug: string
-          status: string
-          type: string
           updated_at: string
-          workspace_path: string | null
         }
         Insert: {
-          created_at?: string
+          agent_id: string
+          content?: string
           id?: string
-          model: string
-          name: string
-          notes?: string | null
-          slug: string
-          status: string
-          type: string
           updated_at?: string
-          workspace_path?: string | null
         }
         Update: {
-          created_at?: string
+          agent_id?: string
+          content?: string
           id?: string
-          model?: string
-          name?: string
-          notes?: string | null
-          slug?: string
-          status?: string
-          type?: string
           updated_at?: string
-          workspace_path?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "agent_souls_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       agent_token_usage: {
         Row: {
-          agent_id: string
+          agent_id: string | null
           cost_usd: number
-          created_at: string
           id: string
           input_tokens: number
           model: string
@@ -227,21 +203,19 @@ export type Database = {
           task_description: string | null
         }
         Insert: {
-          agent_id: string
-          cost_usd: number
-          created_at?: string
+          agent_id?: string | null
+          cost_usd?: number
           id?: string
-          input_tokens: number
+          input_tokens?: number
           model: string
-          output_tokens: number
+          output_tokens?: number
           recorded_at?: string
           session_key?: string | null
           task_description?: string | null
         }
         Update: {
-          agent_id?: string
+          agent_id?: string | null
           cost_usd?: number
-          created_at?: string
           id?: string
           input_tokens?: number
           model?: string
@@ -260,186 +234,175 @@ export type Database = {
           },
         ]
       }
-      approvals: {
+      agents: {
         Row: {
-          action_summary: string
-          alternatives: string | null
-          approval_notes: string | null
-          approved_by_user_id: string | null
-          context: string | null
+          capabilities: Json | null
           created_at: string
-          created_by_agent_id: string | null
-          decided_at: string | null
-          decided_by: string | null
-          decision_at: string | null
-          decision_reason: string | null
-          discord_message_id: string | null
-          draft_content: string | null
           id: string
-          recipient: string | null
-          related_entity_id: string | null
-          related_entity_type: string | null
-          risk_if_delayed: string | null
-          risks_if_approved: string | null
-          risks_if_rejected: string | null
-          stage: string
-          stage_advanced_at: string | null
-          stage_advanced_by: string | null
-          stage_history: Json | null
+          last_seen: string | null
+          model: string
+          name: string
+          notes: string | null
+          slug: string
           status: string
+          type: string
           updated_at: string
-          urgency: string
+          workspace_path: string | null
         }
         Insert: {
-          action_summary: string
-          alternatives?: string | null
-          approval_notes?: string | null
-          approved_by_user_id?: string | null
-          context?: string | null
+          capabilities?: Json | null
           created_at?: string
-          created_by_agent_id?: string | null
-          decided_at?: string | null
-          decided_by?: string | null
-          decision_at?: string | null
-          decision_reason?: string | null
-          discord_message_id?: string | null
-          draft_content?: string | null
           id?: string
-          recipient?: string | null
-          related_entity_id?: string | null
-          related_entity_type?: string | null
-          risk_if_delayed?: string | null
-          risks_if_approved?: string | null
-          risks_if_rejected?: string | null
-          stage?: string
-          stage_advanced_at?: string | null
-          stage_advanced_by?: string | null
-          stage_history?: Json | null
-          status?: string
+          last_seen?: string | null
+          model: string
+          name: string
+          notes?: string | null
+          slug: string
+          status: string
+          type: string
           updated_at?: string
-          urgency: string
+          workspace_path?: string | null
         }
         Update: {
-          action_summary?: string
-          alternatives?: string | null
-          approval_notes?: string | null
-          approved_by_user_id?: string | null
-          context?: string | null
+          capabilities?: Json | null
           created_at?: string
-          created_by_agent_id?: string | null
-          decided_at?: string | null
-          decided_by?: string | null
-          decision_at?: string | null
-          decision_reason?: string | null
-          discord_message_id?: string | null
-          draft_content?: string | null
           id?: string
-          recipient?: string | null
-          related_entity_id?: string | null
-          related_entity_type?: string | null
-          risk_if_delayed?: string | null
-          risks_if_approved?: string | null
-          risks_if_rejected?: string | null
-          stage?: string
-          stage_advanced_at?: string | null
-          stage_advanced_by?: string | null
-          stage_history?: Json | null
+          last_seen?: string | null
+          model?: string
+          name?: string
+          notes?: string | null
+          slug?: string
           status?: string
+          type?: string
           updated_at?: string
-          urgency?: string
+          workspace_path?: string | null
+        }
+        Relationships: []
+      }
+      alert_events: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          message: string
+          resolved: boolean
+          resolved_at: string | null
+          rule_id: string | null
+          severity: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          message: string
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_id?: string | null
+          severity: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          message?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          rule_id?: string | null
+          severity?: string
         }
         Relationships: [
           {
-            foreignKeyName: "approvals_created_by_agent_id_fkey"
-            columns: ["created_by_agent_id"]
+            foreignKeyName: "alert_events_rule_id_fkey"
+            columns: ["rule_id"]
             isOneToOne: false
-            referencedRelation: "agents"
+            referencedRelation: "alert_rules"
             referencedColumns: ["id"]
           },
         ]
+      }
+      alert_rules: {
+        Row: {
+          condition_field: string
+          condition_operator: string
+          condition_value: string
+          created_at: string
+          description: string | null
+          enabled: boolean
+          entity_type: string
+          id: string
+          name: string
+          severity: string
+        }
+        Insert: {
+          condition_field: string
+          condition_operator: string
+          condition_value: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          entity_type: string
+          id?: string
+          name: string
+          severity?: string
+        }
+        Update: {
+          condition_field?: string
+          condition_operator?: string
+          condition_value?: string
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          entity_type?: string
+          id?: string
+          name?: string
+          severity?: string
+        }
+        Relationships: []
       }
       audit_log: {
         Row: {
           action: string
-          agent_id: string | null
           change_reason: string | null
-          changes: Json | null
           created_at: string
-          entity_id: string | null
-          entity_type: string | null
+          entity_id: string
+          entity_type: string
           id: string
           ip_address: string | null
+          new_values: Json | null
+          old_values: Json | null
           user_email: string | null
+          user_id: string | null
         }
         Insert: {
           action: string
-          agent_id?: string | null
           change_reason?: string | null
-          changes?: Json | null
           created_at?: string
-          entity_id?: string | null
-          entity_type?: string | null
+          entity_id: string
+          entity_type: string
           id?: string
           ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
           user_email?: string | null
+          user_id?: string | null
         }
         Update: {
           action?: string
-          agent_id?: string | null
           change_reason?: string | null
-          changes?: Json | null
           created_at?: string
-          entity_id?: string | null
-          entity_type?: string | null
+          entity_id?: string
+          entity_type?: string
           id?: string
           ip_address?: string | null
+          new_values?: Json | null
+          old_values?: Json | null
           user_email?: string | null
+          user_id?: string | null
         }
         Relationships: []
-      }
-      calibration_gates: {
-        Row: {
-          agent_id: string
-          completed: boolean
-          completed_at: string | null
-          completed_count: number
-          created_at: string
-          gate_description: string | null
-          gate_name: string
-          id: string
-          required_count: number
-        }
-        Insert: {
-          agent_id: string
-          completed?: boolean
-          completed_at?: string | null
-          completed_count?: number
-          created_at?: string
-          gate_description?: string | null
-          gate_name: string
-          id?: string
-          required_count?: number
-        }
-        Update: {
-          agent_id?: string
-          completed?: boolean
-          completed_at?: string | null
-          completed_count?: number
-          created_at?: string
-          gate_description?: string | null
-          gate_name?: string
-          id?: string
-          required_count?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "calibration_gates_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       chat_conversations: {
         Row: {
@@ -447,21 +410,21 @@ export type Database = {
           archived_at: string | null
           created_at: string
           id: string
-          title: string
+          title: string | null
         }
         Insert: {
           agent_id: string
           archived_at?: string | null
           created_at?: string
           id?: string
-          title: string
+          title?: string | null
         }
         Update: {
           agent_id?: string
           archived_at?: string | null
           created_at?: string
           id?: string
-          title?: string
+          title?: string | null
         }
         Relationships: [
           {
@@ -505,256 +468,59 @@ export type Database = {
           },
         ]
       }
-      client_health_history: {
+      github_issues: {
         Row: {
-          client_id: string
-          communication_signal: string | null
-          created_at: string
-          health_status: string
+          assignee: string | null
+          body: string | null
           id: string
-          invoice_status_signal: string | null
-          note: string | null
-          product_activity_signal: string | null
-          recorded_by_agent_id: string | null
-          sentiment_signal: string | null
+          integration_id: string | null
+          issue_number: number
+          labels: string[] | null
+          repo: string
+          state: string
+          synced_at: string
+          task_id: string | null
+          title: string
         }
         Insert: {
-          client_id: string
-          communication_signal?: string | null
-          created_at?: string
-          health_status: string
+          assignee?: string | null
+          body?: string | null
           id?: string
-          invoice_status_signal?: string | null
-          note?: string | null
-          product_activity_signal?: string | null
-          recorded_by_agent_id?: string | null
-          sentiment_signal?: string | null
+          integration_id?: string | null
+          issue_number: number
+          labels?: string[] | null
+          repo: string
+          state?: string
+          synced_at?: string
+          task_id?: string | null
+          title: string
         }
         Update: {
-          client_id?: string
-          communication_signal?: string | null
-          created_at?: string
-          health_status?: string
+          assignee?: string | null
+          body?: string | null
           id?: string
-          invoice_status_signal?: string | null
-          note?: string | null
-          product_activity_signal?: string | null
-          recorded_by_agent_id?: string | null
-          sentiment_signal?: string | null
+          integration_id?: string | null
+          issue_number?: number
+          labels?: string[] | null
+          repo?: string
+          state?: string
+          synced_at?: string
+          task_id?: string | null
+          title?: string
         }
         Relationships: [
           {
-            foreignKeyName: "client_health_history_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "github_issues_integration_id_fkey"
+            columns: ["integration_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "integrations"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "client_health_history_recorded_by_agent_id_fkey"
-            columns: ["recorded_by_agent_id"]
+            foreignKeyName: "github_issues_task_id_fkey"
+            columns: ["task_id"]
             isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_notes: {
-        Row: {
-          author: string
-          client_id: string
-          content: string
-          created_at: string
-          id: string
-        }
-        Insert: {
-          author?: string
-          client_id: string
-          content: string
-          created_at?: string
-          id?: string
-        }
-        Update: {
-          author?: string
-          client_id?: string
-          content?: string
-          created_at?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_notes_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      clients: {
-        Row: {
-          archived_at: string | null
-          assigned_am_id: string | null
-          company_name: string
-          contact_email: string | null
-          contact_name: string | null
-          contract_end: string
-          contract_start: string
-          country: string | null
-          created_at: string
-          health_status: string
-          id: string
-          lead_id: string | null
-          monthly_value: number
-          onboarding_complete: boolean | null
-          onboarding_completed_at: string | null
-          proposal_id: string | null
-          renewal_flagged_30d: boolean | null
-          renewal_flagged_90d: boolean | null
-          sector: string | null
-          updated_at: string
-        }
-        Insert: {
-          archived_at?: string | null
-          assigned_am_id?: string | null
-          company_name: string
-          contact_email?: string | null
-          contact_name?: string | null
-          contract_end: string
-          contract_start: string
-          country?: string | null
-          created_at?: string
-          health_status?: string
-          id?: string
-          lead_id?: string | null
-          monthly_value: number
-          onboarding_complete?: boolean | null
-          onboarding_completed_at?: string | null
-          proposal_id?: string | null
-          renewal_flagged_30d?: boolean | null
-          renewal_flagged_90d?: boolean | null
-          sector?: string | null
-          updated_at?: string
-        }
-        Update: {
-          archived_at?: string | null
-          assigned_am_id?: string | null
-          company_name?: string
-          contact_email?: string | null
-          contact_name?: string | null
-          contract_end?: string
-          contract_start?: string
-          country?: string | null
-          created_at?: string
-          health_status?: string
-          id?: string
-          lead_id?: string | null
-          monthly_value?: number
-          onboarding_complete?: boolean | null
-          onboarding_completed_at?: string | null
-          proposal_id?: string | null
-          renewal_flagged_30d?: boolean | null
-          renewal_flagged_90d?: boolean | null
-          sector?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clients_assigned_am_id_fkey"
-            columns: ["assigned_am_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clients_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clients_proposal_id_fkey"
-            columns: ["proposal_id"]
-            isOneToOne: false
-            referencedRelation: "proposals"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      deal_learnings: {
-        Row: {
-          champion_effectiveness: string | null
-          champion_role: string | null
-          competitor_involved: boolean | null
-          competitor_name: string | null
-          competitor_win_reason: string | null
-          created_at: string
-          deal_velocity_days: number | null
-          icp_match_notes: string | null
-          icp_match_quality: string | null
-          id: string
-          key_learning: string
-          lead_id: string
-          loss_reason_primary: string | null
-          loss_reason_secondary: string | null
-          loss_type: string | null
-          margin_achieved: number | null
-          objections: Json | null
-          outcome: string
-          stage_lost_at: string | null
-          velocity_by_stage: Json | null
-        }
-        Insert: {
-          champion_effectiveness?: string | null
-          champion_role?: string | null
-          competitor_involved?: boolean | null
-          competitor_name?: string | null
-          competitor_win_reason?: string | null
-          created_at?: string
-          deal_velocity_days?: number | null
-          icp_match_notes?: string | null
-          icp_match_quality?: string | null
-          id?: string
-          key_learning: string
-          lead_id: string
-          loss_reason_primary?: string | null
-          loss_reason_secondary?: string | null
-          loss_type?: string | null
-          margin_achieved?: number | null
-          objections?: Json | null
-          outcome: string
-          stage_lost_at?: string | null
-          velocity_by_stage?: Json | null
-        }
-        Update: {
-          champion_effectiveness?: string | null
-          champion_role?: string | null
-          competitor_involved?: boolean | null
-          competitor_name?: string | null
-          competitor_win_reason?: string | null
-          created_at?: string
-          deal_velocity_days?: number | null
-          icp_match_notes?: string | null
-          icp_match_quality?: string | null
-          id?: string
-          key_learning?: string
-          lead_id?: string
-          loss_reason_primary?: string | null
-          loss_reason_secondary?: string | null
-          loss_type?: string | null
-          margin_achieved?: number | null
-          objections?: Json | null
-          outcome?: string
-          stage_lost_at?: string | null
-          velocity_by_stage?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "deal_learnings_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
@@ -789,256 +555,265 @@ export type Database = {
         }
         Relationships: []
       }
-      invoices: {
+      integrations: {
         Row: {
-          amount: number
-          archived_at: string | null
-          client_id: string
+          config: Json
           created_at: string
-          due_date: string
-          flag_level: string | null
-          flag_note: string | null
-          flagged: boolean | null
+          enabled: boolean
           id: string
-          invoice_reference: string | null
-          overdue_days: number | null
-          paid_at: string | null
-          status: string
+          last_sync_at: string | null
+          name: string
+          type: string
           updated_at: string
         }
         Insert: {
-          amount: number
-          archived_at?: string | null
-          client_id: string
+          config?: Json
           created_at?: string
-          due_date: string
-          flag_level?: string | null
-          flag_note?: string | null
-          flagged?: boolean | null
+          enabled?: boolean
           id?: string
-          invoice_reference?: string | null
-          overdue_days?: number | null
-          paid_at?: string | null
-          status?: string
+          last_sync_at?: string | null
+          name: string
+          type: string
           updated_at?: string
         }
         Update: {
-          amount?: number
-          archived_at?: string | null
-          client_id?: string
+          config?: Json
           created_at?: string
-          due_date?: string
-          flag_level?: string | null
-          flag_note?: string | null
-          flagged?: boolean | null
+          enabled?: boolean
           id?: string
-          invoice_reference?: string | null
-          overdue_days?: number | null
-          paid_at?: string | null
-          status?: string
+          last_sync_at?: string | null
+          name?: string
+          type?: string
           updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invoices_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      lead_stage_history: {
-        Row: {
-          changed_by_agent_id: string | null
-          created_at: string
-          from_stage: string | null
-          id: string
-          lead_id: string
-          note: string | null
-          reason: string | null
-          to_stage: string
-        }
-        Insert: {
-          changed_by_agent_id?: string | null
-          created_at?: string
-          from_stage?: string | null
-          id?: string
-          lead_id: string
-          note?: string | null
-          reason?: string | null
-          to_stage: string
-        }
-        Update: {
-          changed_by_agent_id?: string | null
-          created_at?: string
-          from_stage?: string | null
-          id?: string
-          lead_id?: string
-          note?: string | null
-          reason?: string | null
-          to_stage?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "lead_stage_history_changed_by_agent_id_fkey"
-            columns: ["changed_by_agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_stage_history_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      leads: {
-        Row: {
-          archived_at: string | null
-          assigned_agent_id: string | null
-          company_name: string
-          contact_name: string | null
-          contact_role: string | null
-          country: string | null
-          created_at: string
-          disqualified_reason: string | null
-          id: string
-          last_activity_at: string | null
-          meddic: Json | null
-          qualified: boolean | null
-          sdr_brief: Json | null
-          sector: string | null
-          source: string | null
-          stage: string
-          stall_flagged: boolean | null
-          updated_at: string
-        }
-        Insert: {
-          archived_at?: string | null
-          assigned_agent_id?: string | null
-          company_name: string
-          contact_name?: string | null
-          contact_role?: string | null
-          country?: string | null
-          created_at?: string
-          disqualified_reason?: string | null
-          id?: string
-          last_activity_at?: string | null
-          meddic?: Json | null
-          qualified?: boolean | null
-          sdr_brief?: Json | null
-          sector?: string | null
-          source?: string | null
-          stage: string
-          stall_flagged?: boolean | null
-          updated_at?: string
-        }
-        Update: {
-          archived_at?: string | null
-          assigned_agent_id?: string | null
-          company_name?: string
-          contact_name?: string | null
-          contact_role?: string | null
-          country?: string | null
-          created_at?: string
-          disqualified_reason?: string | null
-          id?: string
-          last_activity_at?: string | null
-          meddic?: Json | null
-          qualified?: boolean | null
-          sdr_brief?: Json | null
-          sector?: string | null
-          source?: string | null
-          stage?: string
-          stall_flagged?: boolean | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leads_assigned_agent_id_fkey"
-            columns: ["assigned_agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notification_preferences: {
-        Row: {
-          alert_channel: string
-          approval_channel: string
-          id: string
-          report_channel: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          alert_channel?: string
-          approval_channel?: string
-          id?: string
-          report_channel?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          alert_channel?: string
-          approval_channel?: string
-          id?: string
-          report_channel?: string
-          updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
-      onboarding_patterns: {
+      notifications: {
         Row: {
-          client_id: string
+          body: string | null
           created_at: string
-          day7_signals: string | null
-          escalations: number | null
-          friction_points: Json | null
-          health_at_day30: string
+          entity_id: string | null
+          entity_type: string | null
           id: string
-          key_learning: string
-          time_to_value_days: number | null
+          read: boolean
+          recipient: string
+          title: string
+          type: string
         }
         Insert: {
-          client_id: string
+          body?: string | null
           created_at?: string
-          day7_signals?: string | null
-          escalations?: number | null
-          friction_points?: Json | null
-          health_at_day30: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
-          key_learning: string
-          time_to_value_days?: number | null
+          read?: boolean
+          recipient?: string
+          title: string
+          type: string
         }
         Update: {
-          client_id?: string
+          body?: string | null
           created_at?: string
-          day7_signals?: string | null
-          escalations?: number | null
-          friction_points?: Json | null
-          health_at_day30?: string
+          entity_id?: string | null
+          entity_type?: string | null
           id?: string
-          key_learning?: string
-          time_to_value_days?: number | null
+          read?: boolean
+          recipient?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      pipeline_runs: {
+        Row: {
+          completed_at: string | null
+          error: string | null
+          id: string
+          input_data: Json | null
+          output_data: Json | null
+          started_at: string
+          status: string
+          trigger_type: string | null
+          workflow_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          input_data?: Json | null
+          output_data?: Json | null
+          started_at?: string
+          status?: string
+          trigger_type?: string | null
+          workflow_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          error?: string | null
+          id?: string
+          input_data?: Json | null
+          output_data?: Json | null
+          started_at?: string
+          status?: string
+          trigger_type?: string | null
+          workflow_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "onboarding_patterns_client_id_fkey"
-            columns: ["client_id"]
+            foreignKeyName: "pipeline_runs_workflow_id_fkey"
+            columns: ["workflow_id"]
             isOneToOne: false
-            referencedRelation: "clients"
+            referencedRelation: "workflows"
             referencedColumns: ["id"]
           },
         ]
       }
-      pipeline_config: {
+      projects: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          ticket_counter: number
+          ticket_prefix: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          ticket_counter?: number
+          ticket_prefix?: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          ticket_counter?: number
+          ticket_prefix?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      quality_reviews: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          reviewer: string
+          status: string
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reviewer: string
+          status?: string
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reviewer?: string
+          status?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_reviews_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_tasks: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          handler: string
+          id: string
+          last_run: string | null
+          last_status: string | null
+          name: string
+          next_run: string | null
+          schedule: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          handler: string
+          id?: string
+          last_run?: string | null
+          last_status?: string | null
+          name: string
+          next_run?: string | null
+          schedule: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          handler?: string
+          id?: string
+          last_run?: string | null
+          last_status?: string | null
+          name?: string
+          next_run?: string | null
+          schedule?: string
+        }
+        Relationships: []
+      }
+      standup_reports: {
+        Row: {
+          content: Json
+          generated_at: string
+          generated_by: string | null
+          id: string
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          content: Json
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          content?: Json
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standup_reports_generated_by_fkey"
+            columns: ["generated_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_config: {
         Row: {
           key: string
           updated_at: string
@@ -1056,191 +831,266 @@ export type Database = {
         }
         Relationships: []
       }
-      proposals: {
+      task_comments: {
         Row: {
-          archived_at: string | null
-          boss_approved: boolean | null
-          boss_approved_at: string | null
+          author: string
+          content: string
           created_at: string
-          follow_up_10d_sent: boolean | null
-          follow_up_48h_sent: boolean | null
-          follow_up_5d_sent: boolean | null
-          gate_atlas_cleared: boolean | null
-          gate_atlas_cleared_at: string | null
-          gate_atlas_required: boolean | null
-          gate_finance_cleared: boolean | null
-          gate_finance_cleared_at: string | null
-          gate_finance_notes: string | null
-          gate_legal_cleared: boolean | null
-          gate_legal_cleared_at: string | null
-          gate_legal_notes: string | null
           id: string
-          lead_id: string
-          monthly_value: number | null
-          outcome: string | null
-          outcome_at: string | null
-          payment_terms: string | null
-          scope_summary: string | null
-          sent_at: string | null
-          status: string
-          updated_at: string
-          value: number | null
-          version: number
+          parent_id: string | null
+          task_id: string
         }
         Insert: {
-          archived_at?: string | null
-          boss_approved?: boolean | null
-          boss_approved_at?: string | null
+          author?: string
+          content: string
           created_at?: string
-          follow_up_10d_sent?: boolean | null
-          follow_up_48h_sent?: boolean | null
-          follow_up_5d_sent?: boolean | null
-          gate_atlas_cleared?: boolean | null
-          gate_atlas_cleared_at?: string | null
-          gate_atlas_required?: boolean | null
-          gate_finance_cleared?: boolean | null
-          gate_finance_cleared_at?: string | null
-          gate_finance_notes?: string | null
-          gate_legal_cleared?: boolean | null
-          gate_legal_cleared_at?: string | null
-          gate_legal_notes?: string | null
           id?: string
-          lead_id: string
-          monthly_value?: number | null
-          outcome?: string | null
-          outcome_at?: string | null
-          payment_terms?: string | null
-          scope_summary?: string | null
-          sent_at?: string | null
-          status: string
-          updated_at?: string
-          value?: number | null
-          version?: number
+          parent_id?: string | null
+          task_id: string
         }
         Update: {
-          archived_at?: string | null
-          boss_approved?: boolean | null
-          boss_approved_at?: string | null
+          author?: string
+          content?: string
           created_at?: string
-          follow_up_10d_sent?: boolean | null
-          follow_up_48h_sent?: boolean | null
-          follow_up_5d_sent?: boolean | null
-          gate_atlas_cleared?: boolean | null
-          gate_atlas_cleared_at?: string | null
-          gate_atlas_required?: boolean | null
-          gate_finance_cleared?: boolean | null
-          gate_finance_cleared_at?: string | null
-          gate_finance_notes?: string | null
-          gate_legal_cleared?: boolean | null
-          gate_legal_cleared_at?: string | null
-          gate_legal_notes?: string | null
           id?: string
-          lead_id?: string
-          monthly_value?: number | null
-          outcome?: string | null
-          outcome_at?: string | null
-          payment_terms?: string | null
-          scope_summary?: string | null
-          sent_at?: string | null
-          status?: string
-          updated_at?: string
-          value?: number | null
-          version?: number
+          parent_id?: string | null
+          task_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "proposals_lead_id_fkey"
-            columns: ["lead_id"]
+            foreignKeyName: "task_comments_parent_id_fkey"
+            columns: ["parent_id"]
             isOneToOne: false
-            referencedRelation: "leads"
+            referencedRelation: "task_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
             referencedColumns: ["id"]
           },
         ]
       }
-      weekly_reports: {
+      task_subscriptions: {
         Row: {
-          agent_cost_total: number | null
-          cost_per_lead: number | null
-          deals_closed_count: number | null
-          generated_at: string
+          agent_id: string
+          created_at: string
           id: string
-          new_leads_count: number | null
-          pipeline_value_total: number | null
-          proposals_sent_count: number | null
-          report_data: Json | null
-          revenue_this_week: number | null
-          week_end: string
-          week_start: string
+          task_id: string
         }
         Insert: {
-          agent_cost_total?: number | null
-          cost_per_lead?: number | null
-          deals_closed_count?: number | null
-          generated_at?: string
+          agent_id: string
+          created_at?: string
           id?: string
-          new_leads_count?: number | null
-          pipeline_value_total?: number | null
-          proposals_sent_count?: number | null
-          report_data?: Json | null
-          revenue_this_week?: number | null
-          week_end: string
-          week_start: string
+          task_id: string
         }
         Update: {
-          agent_cost_total?: number | null
-          cost_per_lead?: number | null
-          deals_closed_count?: number | null
-          generated_at?: string
+          agent_id?: string
+          created_at?: string
           id?: string
-          new_leads_count?: number | null
-          pipeline_value_total?: number | null
-          proposals_sent_count?: number | null
-          report_data?: Json | null
-          revenue_this_week?: number | null
-          week_end?: string
-          week_start?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_subscriptions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_subscriptions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          archived_at: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          labels: string[] | null
+          metadata: Json | null
+          priority: string
+          project_id: string | null
+          search_vector: unknown
+          status: string
+          ticket_ref: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          labels?: string[] | null
+          metadata?: Json | null
+          priority?: string
+          project_id?: string | null
+          search_vector?: unknown
+          status?: string
+          ticket_ref?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          labels?: string[] | null
+          metadata?: Json | null
+          priority?: string
+          project_id?: string | null
+          search_vector?: unknown
+          status?: string
+          ticket_ref?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhook_deliveries: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          event_type: string
+          id: string
+          payload: Json
+          response: string | null
+          status_code: number | null
+          success: boolean
+          webhook_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          event_type: string
+          id?: string
+          payload: Json
+          response?: string | null
+          status_code?: number | null
+          success?: boolean
+          webhook_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          response?: string | null
+          status_code?: number | null
+          success?: boolean
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_deliveries_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      webhooks: {
+        Row: {
+          consecutive_failures: number
+          created_at: string
+          enabled: boolean
+          events: string[]
+          id: string
+          last_failure_at: string | null
+          name: string
+          secret: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          consecutive_failures?: number
+          created_at?: string
+          enabled?: boolean
+          events?: string[]
+          id?: string
+          last_failure_at?: string | null
+          name: string
+          secret: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          consecutive_failures?: number
+          created_at?: string
+          enabled?: boolean
+          events?: string[]
+          id?: string
+          last_failure_at?: string | null
+          name?: string
+          secret?: string
+          updated_at?: string
+          url?: string
         }
         Relationships: []
       }
-      valid_approval_transitions: {
+      workflows: {
         Row: {
           created_at: string
-          from_stage: string
+          description: string | null
+          enabled: boolean
           id: string
-          to_stage: string
+          name: string
+          steps: Json
+          updated_at: string
         }
         Insert: {
           created_at?: string
-          from_stage: string
+          description?: string | null
+          enabled?: boolean
           id?: string
-          to_stage: string
+          name: string
+          steps?: Json
+          updated_at?: string
         }
         Update: {
           created_at?: string
-          from_stage?: string
+          description?: string | null
+          enabled?: boolean
           id?: string
-          to_stage?: string
-        }
-        Relationships: []
-      }
-      valid_stage_transitions: {
-        Row: {
-          created_at: string
-          from_stage: string
-          id: string
-          to_stage: string
-        }
-        Insert: {
-          created_at?: string
-          from_stage: string
-          id?: string
-          to_stage: string
-        }
-        Update: {
-          created_at?: string
-          from_stage?: string
-          id?: string
-          to_stage?: string
+          name?: string
+          steps?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1378,6 +1228,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

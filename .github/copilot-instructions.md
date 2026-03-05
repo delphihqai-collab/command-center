@@ -1,8 +1,8 @@
-# Command Center — GitHub Copilot Instructions
+# Mission Control — GitHub Copilot Instructions
 
 ## Project Identity
 
-Internal operations backoffice for Delphi. Next.js 16 + Supabase. Dark theme. Port 9069 on a private Linux machine.
+AI agent orchestration dashboard. Next.js 16 + Supabase. Dark theme. Port 9069 on a private Linux machine.
 
 ## Stack
 
@@ -59,17 +59,17 @@ Dark theme only. Zinc palette:
 
 Status colours:
 - Healthy/active/paid/approved: `emerald-500`
-- Warning/idle/pending/at-risk: `amber-500`
-- Critical/failed/overdue/rejected: `red-500`
-- Offline/archived/expired: `zinc-500`
+- Warning/idle/pending/in-progress: `amber-500`
+- Critical/failed/rejected/urgent: `red-500`
+- Offline/archived/disabled: `zinc-500`
 
 ## Naming Conventions
 
 - Components: PascalCase (`StatusBadge`, `AgentCard`)
 - Files: kebab-case (`status-badge.tsx`, `agent-card.tsx`)
 - Database columns: snake_case (matches Supabase schema)
-- TypeScript interfaces: PascalCase (`Lead`, `Agent`, `Proposal`)
-- Server actions: camelCase verb (`createLead`, `updateProposalStatus`)
+- TypeScript interfaces: PascalCase (`Task`, `Agent`, `Webhook`)
+- Server actions: camelCase verb (`createTask`, `moveTask`, `toggleWebhook`)
 
 ## Do Not
 
