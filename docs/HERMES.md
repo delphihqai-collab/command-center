@@ -464,3 +464,18 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 **Scope:** Reorganised the Scheduler page to group cron jobs by agent instead of a flat list. Each agent gets a labelled section with a Bot icon, agent display name, and job count. Jobs within each group show schedule, target, last/next run — the redundant "Agent:" field was removed since the grouping makes it obvious. Agent groups are ordered: Hermes first, then workers (SDR, AE, AM), then specialists.
 **Changes:**
 - `src/app/(app)/cron/page.tsx` — added `AGENT_DISPLAY_NAMES` map, `AGENT_ORDER` sort list, `groupJobsByAgent()` helper. Replaced flat job list with grouped sections. Removed per-job "Agent:" label. Added `Bot` icon import.
+
+### 2026-03-05 — Memory browser: redesigned to match workspace-files UI
+
+**Scope:** Redesigned the Memory Browser page to match the split-panel layout used in the Workspace Files editor on agent detail pages.
+
+**Changes:**
+- `src/app/(app)/memory/page.tsx` — removed Card wrapper, simplified to header + MemoryBrowser component
+- `src/app/(app)/memory/_components/memory-browser.tsx` — complete rewrite:
+  - Agent selector changed from `<select>` dropdown to horizontal pill-style tabs with per-agent icons (Crown for Hermes, Megaphone for SDR, etc.)
+  - File browser changed from grid layout to unified split-panel (sidebar + content area) matching workspace-files
+  - Added Preview/Code toggle for markdown files (same segmented control style)
+  - Full `prose-invert` markdown rendering with matching typography classes
+  - File header bar with filename, agent label, line count
+  - Loading spinner state for content fetching
+  - Consistent zinc-800/900/950 palette, indigo-400 accents
