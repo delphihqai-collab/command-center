@@ -8,6 +8,10 @@ import { calculateCost } from "@/lib/model-costs";
 
 const execFileAsync = promisify(execFile);
 
+// OpenClaw is installed via nvm — systemd doesn't inherit nvm PATH
+const OPENCLAW_BIN =
+  process.env.OPENCLAW_BIN ?? "/home/delphi/.nvm/versions/node/v22.22.0/bin/openclaw";
+
 interface OpenClawSession {
   key: string;
   agentId: string;
@@ -32,7 +36,7 @@ export default async function SessionsPage() {
       .from("agents")
       .select("id, slug, name, status")
       .order("created_at", { ascending: true }),
-    execFileAsync("openclaw", ["sessions", "--all-agents", "--json"])
+    execFileAsync(OPENCLAW_BIN, ["sessions", "--all-agents", "--json"])
       .then((result) => {
         const data = JSON.parse(result.stdout) as {
           count: number;
