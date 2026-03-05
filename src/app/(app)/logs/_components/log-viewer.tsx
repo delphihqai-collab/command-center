@@ -1,22 +1,16 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { formatDistanceToNow } from "date-fns";
-import { Radio, Search } from "lucide-react";
-
-interface AgentInfo {
-  id: string;
-  name: string;
-  slug: string;
-}
+import { Radio, Search, RefreshCw } from "lucide-react";
 
 interface LogEntry {
   id: string;
-  agent_name: string;
-  action: string;
-  detail: string | null;
-  created_at: string;
+  timestamp: string;
+  source: string;
+  component: string;
+  message: string;
+  priority: string;
 }
 
 const TIME_RANGES = [
@@ -26,135 +20,111 @@ const TIME_RANGES = [
   { label: "7d", hours: 168 },
 ] as const;
 
-function getLogColor(action: string): string {
-  const lower = action.toLowerCase();
+const SOURCES = [
+  { label: "All", value: "all" },
+  { label: "Gateway", value: "gateway" },
+  { label: "App", value: "app" },
+] as const;
+
+function getPriorityColor(priority: string, message: string): string {
+  // journald priorities: 0=emerg, 1=alert, 2=crit, 3=err, 4=warn, 5=notice, 6=info, 7=debug
+  const p = Number(priority);
+  if (p <= 3) return "text-red-400";
+  if (p === 4) return "text-amber-400";
+
+  const lower = message.toLowerCase();
   if (lower.includes("error") || lower.includes("fail")) return "text-red-400";
-  if (lower.includes("warn")) return "text-amber-400";
+  if (lower.includes("warn") || lower.includes("slow")) return "text-amber-400";
   return "text-zinc-300";
 }
 
-export function LogViewer({
-  agents,
-  initialAgent,
-}: {
-  agents: AgentInfo[];
-  initialAgent: string | null;
-}) {
-  const [selectedAgent, setSelectedAgent] = useState<string>(
-    initialAgent ?? ""
-  );
+function getSourceBadge(source: string): string {
+  if (source === "Gateway")
+    return "bg-indigo-500/10 text-indigo-400 border-indigo-500/20";
+  return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+}
+
+export function LogViewer() {
+  const [source, setSource] = useState("all");
   const [timeRange, setTimeRange] = useState(24);
   const [searchText, setSearchText] = useState("");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [liveTail, setLiveTail] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const supabase = createClient();
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
-    const from = new Date(
+    const since = new Date(
       Date.now() - timeRange * 60 * 60 * 1000
     ).toISOString();
 
-    let query = supabase
-      .from("agent_logs")
-      .select("id, action, detail, created_at, agents(name)")
-      .gte("created_at", from)
-      .order("created_at", { ascending: false })
-      .limit(200);
+    const params = new URLSearchParams({
+      source,
+      since,
+      lines: "300",
+    });
+    if (searchText.trim()) {
+      params.set("grep", searchText.trim());
+    }
 
-    if (selectedAgent) {
-      const agent = agents.find((a) => a.slug === selectedAgent);
-      if (agent) {
-        query = query.eq("agent_id", agent.id);
+    try {
+      const res = await fetch(`/api/logs/journal?${params.toString()}`);
+      if (res.ok) {
+        const data = (await res.json()) as { entries: LogEntry[] };
+        setLogs(data.entries);
       }
+    } catch {
+      // Network error — keep existing logs
     }
-
-    const { data } = await query;
-
-    const entries: LogEntry[] = (data ?? []).map((row) => ({
-      id: row.id,
-      agent_name:
-        (row.agents as unknown as { name: string } | null)?.name ?? "Unknown",
-      action: row.action,
-      detail: row.detail,
-      created_at: row.created_at,
-    }));
-
-    if (searchText) {
-      const lower = searchText.toLowerCase();
-      setLogs(
-        entries.filter(
-          (e) =>
-            e.action.toLowerCase().includes(lower) ||
-            (e.detail?.toLowerCase().includes(lower) ?? false)
-        )
-      );
-    } else {
-      setLogs(entries);
-    }
-
     setLoading(false);
-  }, [supabase, selectedAgent, timeRange, searchText, agents]);
+  }, [source, timeRange, searchText]);
 
   useEffect(() => {
     fetchLogs();
   }, [fetchLogs]);
 
-  // Live tail subscription
+  // Live tail polling
   useEffect(() => {
     if (!liveTail) {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
       return;
     }
 
-    const channel = supabase
-      .channel("agent_logs_live")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "agent_logs" },
-        (payload) => {
-          const row = payload.new as Record<string, string | null>;
-          const entry: LogEntry = {
-            id: row.id ?? crypto.randomUUID(),
-            agent_name: "Agent",
-            action: row.action ?? "",
-            detail: row.detail ?? null,
-            created_at: row.created_at ?? new Date().toISOString(),
-          };
-          setLogs((prev) => [entry, ...prev].slice(0, 500));
-        }
-      )
-      .subscribe();
-
-    channelRef.current = channel;
+    intervalRef.current = setInterval(() => {
+      fetchLogs();
+    }, 5000);
 
     return () => {
-      supabase.removeChannel(channel);
-      channelRef.current = null;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
-  }, [liveTail, supabase]);
+  }, [liveTail, fetchLogs]);
 
   return (
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <select
-          value={selectedAgent}
-          onChange={(e) => setSelectedAgent(e.target.value)}
-          className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-50"
-        >
-          <option value="">All agents</option>
-          {agents.map((a) => (
-            <option key={a.slug} value={a.slug}>
-              {a.name}
-            </option>
+        <div className="flex gap-1 rounded-md border border-zinc-700 bg-zinc-800 p-0.5">
+          {SOURCES.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setSource(s.value)}
+              className={`rounded px-2.5 py-1 text-xs font-medium ${
+                source === s.value
+                  ? "bg-indigo-600 text-white"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              {s.label}
+            </button>
           ))}
-        </select>
+        </div>
 
         <div className="flex gap-1 rounded-md border border-zinc-700 bg-zinc-800 p-0.5">
           {TIME_RANGES.map((tr) => (
@@ -187,6 +157,14 @@ export function LogViewer({
         </div>
 
         <button
+          onClick={() => fetchLogs()}
+          className="rounded-md border border-zinc-700 bg-zinc-800 p-2 text-zinc-400 hover:text-zinc-200"
+          title="Refresh"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+        </button>
+
+        <button
           onClick={() => setLiveTail(!liveTail)}
           className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium ${
             liveTail
@@ -208,13 +186,13 @@ export function LogViewer({
                 Timestamp
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400">
-                Agent
+                Source
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400">
-                Action
+                Component
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-zinc-400">
-                Detail
+                Message
               </th>
             </tr>
           </thead>
@@ -236,25 +214,29 @@ export function LogViewer({
             {logs.map((log) => (
               <tr key={log.id} className="border-b border-zinc-800/50">
                 <td
-                  className="px-4 py-2 text-xs text-zinc-500"
-                  title={log.created_at}
+                  className="whitespace-nowrap px-4 py-2 text-xs text-zinc-500"
+                  title={log.timestamp}
                 >
-                  {formatDistanceToNow(new Date(log.created_at), {
+                  {formatDistanceToNow(new Date(log.timestamp), {
                     addSuffix: true,
                   })}
                 </td>
-                <td className="px-4 py-2 text-xs text-zinc-300">
-                  {log.agent_name}
+                <td className="px-4 py-2">
+                  <span
+                    className={`inline-block rounded border px-1.5 py-0.5 text-xs font-medium ${getSourceBadge(log.source)}`}
+                  >
+                    {log.source}
+                  </span>
                 </td>
                 <td className="px-4 py-2">
                   <code
-                    className={`rounded bg-zinc-800 px-1.5 py-0.5 text-xs ${getLogColor(log.action)}`}
+                    className={`rounded bg-zinc-800 px-1.5 py-0.5 text-xs ${getPriorityColor(log.priority, log.message)}`}
                   >
-                    {log.action}
+                    {log.component}
                   </code>
                 </td>
-                <td className="max-w-md truncate px-4 py-2 text-xs text-zinc-400">
-                  {log.detail ?? "—"}
+                <td className="max-w-xl truncate px-4 py-2 text-xs text-zinc-400">
+                  {log.message || "—"}
                 </td>
               </tr>
             ))}
@@ -265,7 +247,7 @@ export function LogViewer({
           <div className="flex items-center gap-2 border-t border-zinc-800 px-4 py-2">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
             <span className="text-xs text-emerald-400">
-              Live tail active — {logs.length} entries
+              Live tail active — refreshing every 5s — {logs.length} entries
             </span>
           </div>
         )}

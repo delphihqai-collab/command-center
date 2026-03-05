@@ -3,24 +3,13 @@ import { redirect } from "next/navigation";
 import { ScrollText } from "lucide-react";
 import { LogViewer } from "./_components/log-viewer";
 
-export default async function LogsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ agent?: string }>;
-}) {
+export default async function LogsPage() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
-
-  const params = await searchParams;
-
-  const { data: agents } = await supabase
-    .from("agents")
-    .select("id, name, slug")
-    .order("name");
 
   return (
     <div className="space-y-6">
@@ -29,12 +18,12 @@ export default async function LogsPage({
         <div>
           <h1 className="text-2xl font-bold text-zinc-50">Log Viewer</h1>
           <p className="text-sm text-zinc-400">
-            Agent logs &amp; system journal
+            OpenClaw gateway &amp; system journal
           </p>
         </div>
       </div>
 
-      <LogViewer agents={agents ?? []} initialAgent={params.agent ?? null} />
+      <LogViewer />
     </div>
   );
 }

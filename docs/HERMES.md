@@ -506,3 +506,11 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 **Changes:**
 - `src/app/(app)/cron/_components/cron-job-list.tsx` — new client component. Horizontal pill buttons for "All" + each agent. Clicking a pill filters to show only that agent's jobs. Renders the same grouped layout (Bot icon, agent name, job cards).
 - `src/app/(app)/cron/page.tsx` — simplified server component. Delegates all rendering to `CronJobList` client component. Keeps data fetching and grouping logic server-side.
+
+### 2026-03-05 — Logs page: rewired to journalctl
+
+**Scope:** The Logs page was reading from the empty `agent_logs` Supabase table — showing "No logs found". Rewired to read real system logs from journalctl for both `openclaw-gateway` (~12k entries) and `command-center` (~9k entries) services.
+**Changes:**
+- `src/app/api/logs/journal/route.ts` — complete rewrite. Reads from both `openclaw-gateway` and `command-center` systemd units. Accepts query params: `source` (all/gateway/app), `since` (ISO timestamp), `lines` (limit), `grep` (text filter). Parses gateway log messages to extract `[component]` tags. Returns structured entries with id, timestamp, source, component, message, priority.
+- `src/app/(app)/logs/_components/log-viewer.tsx` — complete rewrite. Fetches from `/api/logs/journal` instead of Supabase `agent_logs`. Source filter pills (All/Gateway/App) replace agent dropdown. Columns: Timestamp, Source (badge), Component (parsed from log), Message. Live Tail polls every 5s. Refresh button. Removed Supabase client import and realtime subscription.
+- `src/app/(app)/logs/page.tsx` — simplified. Removed agents query and searchParams. LogViewer no longer needs props.
