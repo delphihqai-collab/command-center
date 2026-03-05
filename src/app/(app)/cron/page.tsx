@@ -6,6 +6,8 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { Clock, AlertTriangle } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 const execFileAsync = promisify(execFile);
 
 const OPENCLAW_BIN =

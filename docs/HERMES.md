@@ -429,3 +429,23 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 
 **Files changed:**
 - `src/app/(app)/webhooks/page.tsx` — swapped disabled `WebhookActions mode="create"` stub with `CreateWebhookDialog`
+
+---
+
+### 2026-03-05 — Fix: Sessions Page + Workspace Editor
+
+**What:** Two fixes in one session.
+
+1. **Sessions page:** Was fetching `http://localhost:18789/sessions` but the OpenClaw gateway is a SPA with no REST API. Rewrote to use `openclaw sessions --all-agents --json` CLI via `execFile`. Also fixed systemd PATH issue by using absolute path to the openclaw binary (`/home/delphi/.nvm/versions/node/v22.22.0/bin/openclaw`). New table shows session key, kind (direct/group), model, context usage bar, last activity, estimated cost.
+
+2. **Workspace editor:** Replaced section-based markdown editor with GitHub-style Preview/Code toggle. Preview mode renders markdown via `react-markdown` with full prose styling. Code mode shows raw textarea for editing. Segmented control in the file header bar switches between modes. Added `@tailwindcss/typography` plugin for prose classes.
+
+**Files changed:**
+- `src/app/(app)/sessions/page.tsx` — rewrote data fetching from HTTP to CLI
+- `src/app/(app)/sessions/_components/sessions-table-client.tsx` — new columns (agent, kind, model, context bar, cost)
+- `src/app/(app)/agents/[slug]/_components/workspace-files.tsx` — complete rewrite with Preview/Code toggle
+- `src/app/globals.css` — added `@plugin "@tailwindcss/typography"`
+- `.github/instructions/openclaw-integration.instructions.md` — corrected data source table
+
+**Dependencies added:**
+- `@tailwindcss/typography` — for markdown prose rendering
