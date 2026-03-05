@@ -1,32 +1,44 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import { revalidatePath } from "next/cache";
 import type { ServerActionResult } from "@/lib/types";
 
-export async function toggleScheduledTask(
+const execFileAsync = promisify(execFile);
+
+const OPENCLAW_BIN =
+  process.env.OPENCLAW_BIN ?? "/home/delphi/.nvm/versions/node/v22.22.0/bin/openclaw";
+
+export async function toggleCronJob(
   id: string,
   enabled: boolean
 ): Promise<ServerActionResult> {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("scheduled_tasks")
-    .update({ enabled })
-    .eq("id", id);
-  if (error) return { success: false, error: error.message };
-  revalidatePath("/cron");
-  return { success: true };
+  try {
+    await execFileAsync(OPENCLAW_BIN, [
+      "cron",
+      "edit",
+      id,
+      "--enabled",
+      String(enabled),
+    ]);
+    revalidatePath("/cron");
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to toggle cron job";
+    return { success: false, error: message };
+  }
 }
 
-export async function triggerScheduledTask(
+export async function triggerCronJob(
   id: string
 ): Promise<ServerActionResult> {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("scheduled_tasks")
-    .update({ last_run: new Date().toISOString(), last_status: "running" })
-    .eq("id", id);
-  if (error) return { success: false, error: error.message };
-  revalidatePath("/cron");
-  return { success: true };
+  try {
+    await execFileAsync(OPENCLAW_BIN, ["cron", "run", id]);
+    revalidatePath("/cron");
+    return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to trigger cron job";
+    return { success: false, error: message };
+  }
 }

@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { toggleScheduledTask, triggerScheduledTask } from "../actions";
+import { toggleCronJob, triggerCronJob } from "../actions";
 import { toast } from "sonner";
 
 export function CronActions({ id, enabled }: { id: string; enabled: boolean }) {
@@ -16,7 +16,7 @@ export function CronActions({ id, enabled }: { id: string; enabled: boolean }) {
         disabled={isPending}
         onClick={() =>
           startTransition(async () => {
-            const res = await toggleScheduledTask(id, !enabled);
+            const res = await toggleCronJob(id, !enabled);
             if (!res.success) toast.error(res.error);
             else toast.success(enabled ? "Disabled" : "Enabled");
           })
@@ -30,7 +30,7 @@ export function CronActions({ id, enabled }: { id: string; enabled: boolean }) {
         disabled={isPending || !enabled}
         onClick={() =>
           startTransition(async () => {
-            const res = await triggerScheduledTask(id);
+            const res = await triggerCronJob(id);
             if (!res.success) toast.error(res.error);
             else toast.success("Triggered");
           })

@@ -417,3 +417,15 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 ### 2026-03-04 — Initial V1–V3
 
 **What:** Created the project from scratch. Dashboard KPIs, pipeline advance, approvals actions, knowledge search, settings, invoice detail, cursor pagination, schema fixes, Zod schemas. Established the Supabase schema, migrations, seed data, RLS policies, and core routing structure.
+
+---
+
+### 2026-03-05 — Fix: Webhook Creation Dialog
+
+**What:** The "New Webhook" button was rendered as permanently disabled with no form behind it. Created `CreateWebhookDialog` component with a full creation form (name, URL, secret, event selection via checkboxes). Wired it to the existing `createWebhook` server action.
+
+**Files added:**
+- `src/app/(app)/webhooks/_components/create-webhook-dialog.tsx`
+
+**Files changed:**
+- `src/app/(app)/webhooks/page.tsx` — swapped disabled `WebhookActions mode="create"` stub with `CreateWebhookDialog`

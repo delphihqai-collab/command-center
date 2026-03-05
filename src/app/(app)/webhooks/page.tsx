@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 import { WebhookActions } from "./_components/webhook-actions";
+import { CreateWebhookDialog } from "./_components/create-webhook-dialog";
 import { format } from "date-fns";
 
 export default async function WebhooksPage() {
@@ -21,7 +22,7 @@ export default async function WebhooksPage() {
           <h1 className="text-2xl font-semibold text-zinc-50">Webhooks</h1>
           <p className="text-sm text-zinc-400">{items.length} configured webhooks</p>
         </div>
-        <WebhookActions mode="create" />
+        <CreateWebhookDialog />
       </div>
 
       {items.length === 0 ? (
