@@ -8,7 +8,6 @@ import {
   Building2,
   Bot,
   Bell,
-  MessageSquare,
   DollarSign,
   Monitor,
   Brain,
@@ -18,41 +17,62 @@ import {
   Settings,
   LogOut,
   KanbanSquare,
-  Radio,
-  Megaphone,
   Webhook,
-  GitBranch,
   Clock,
-  BellRing,
   Plug,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/tasks", label: "Tasks", icon: KanbanSquare },
-  { href: "/office", label: "The Office", icon: Building2 },
-  { href: "/agents", label: "Agent Squad", icon: Bot },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
-  { href: "/comms", label: "Agent Comms", icon: Radio },
-  { href: "/standup", label: "Standup", icon: Megaphone },
-  { href: "/costs", label: "Costs", icon: DollarSign },
-  { href: "/sessions", label: "Sessions", icon: Monitor },
-  { href: "/memory", label: "Memory", icon: Brain },
-  { href: "/logs", label: "Logs", icon: ScrollText },
-  { href: "/alerts", label: "Alerts", icon: Bell },
-  { href: "/webhooks", label: "Webhooks", icon: Webhook },
-  { href: "/workflows", label: "Workflows", icon: GitBranch },
-  { href: "/cron", label: "Scheduler", icon: Clock },
-  { href: "/notifications", label: "Notifications", icon: BellRing },
-  { href: "/integrations", label: "Integrations", icon: Plug },
-  { href: "/audit-log", label: "Audit Log", icon: ClipboardList },
-  { href: "/gateway", label: "Gateway", icon: Server },
-  { href: "/settings", label: "Settings", icon: Settings },
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
+interface NavGroup {
+  label?: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    items: [
+      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+      { href: "/agents", label: "Agents", icon: Bot },
+      { href: "/tasks", label: "Tasks", icon: KanbanSquare },
+      { href: "/sessions", label: "Sessions", icon: Monitor },
+      { href: "/office", label: "Office", icon: Building2 },
+    ],
+  },
+  {
+    label: "OBSERVE",
+    items: [
+      { href: "/logs", label: "Logs", icon: ScrollText },
+      { href: "/costs", label: "Tokens", icon: DollarSign },
+      { href: "/memory", label: "Memory", icon: Brain },
+    ],
+  },
+  {
+    label: "AUTOMATE",
+    items: [
+      { href: "/cron", label: "Cron", icon: Clock },
+      { href: "/webhooks", label: "Webhooks", icon: Webhook },
+      { href: "/alerts", label: "Alerts", icon: Bell },
+    ],
+  },
+  {
+    label: "ADMIN",
+    items: [
+      { href: "/audit-log", label: "Audit", icon: ClipboardList },
+      { href: "/gateway", label: "Gateways", icon: Server },
+      { href: "/integrations", label: "Integrations", icon: Plug },
+      { href: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
 ];
 
 const mobileNavItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/tasks", label: "Tasks", icon: KanbanSquare },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/alerts", label: "Alerts", icon: Bell },
@@ -77,26 +97,41 @@ export function Sidebar() {
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-3">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                  isActive
-                    ? "bg-zinc-800 text-zinc-50"
-                    : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          {navGroups.map((group, groupIndex) => (
+            <div key={group.label ?? "core"}>
+              {groupIndex > 0 && (
+                <div className="mx-2 my-2 border-t border-zinc-800" />
+              )}
+              {group.label && (
+                <p className="mb-1 mt-2 px-3 text-[10px] font-semibold tracking-wider text-zinc-500">
+                  {group.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname.startsWith(item.href + "/");
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                        isActive
+                          ? "bg-zinc-800 text-zinc-50"
+                          : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
+                      )}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-zinc-800 p-2">

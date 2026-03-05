@@ -93,9 +93,9 @@ export function AgentSheet({ agent, onClose }: AgentSheetProps) {
           {/* Actions */}
           <div className="flex gap-2">
             <Button asChild size="sm" className="flex-1 gap-1 bg-indigo-600 text-xs hover:bg-indigo-700">
-              <Link href={`/chat?agent=${agent.slug}`}>
+              <Link href={`/agents/${agent.slug}`}>
                 <MessageSquare className="h-3 w-3" />
-                Open Chat
+                View Agent
               </Link>
             </Button>
             <Button asChild size="sm" variant="outline" className="flex-1 gap-1 border-zinc-700 text-xs">

@@ -22,19 +22,13 @@ src/
 │   │   ├── agents/[slug] ← Agent detail + soul/tasks/comms
 │   │   ├── agents/[slug]/soul ← SOUL editor (markdown)
 │   │   ├── office/       ← The Office — pixel-art agent grid
-│   │   ├── chat/         ← Chat panel (per-agent conversations)
-│   │   ├── comms/        ← Inter-agent messaging feed
-│   │   ├── standup/      ← Auto-generated standup reports
 │   │   ├── costs/        ← Token/cost tracking dashboard
 │   │   ├── sessions/     ← Agent session monitoring
 │   │   ├── memory/       ← Memory file browser
 │   │   ├── logs/         ← Unified log viewer
 │   │   ├── alerts/       ← Alert rules + events
 │   │   ├── webhooks/     ← Webhook CRUD + delivery history
-│   │   ├── workflows/    ← Workflow templates
-│   │   ├── pipelines/    ← Workflow execution runs
 │   │   ├── cron/         ← Scheduled task management
-│   │   ├── notifications/ ← In-app notification center
 │   │   ├── integrations/ ← Third-party connections
 │   │   ├── audit-log/    ← Immutable audit trail
 │   │   ├── gateway/      ← Gateway config panel
@@ -44,7 +38,6 @@ src/
 │   │   ├── tasks/        ← Task CRUD + comments
 │   │   ├── agents/       ← Agent soul, heartbeat, comms
 │   │   ├── webhooks/     ← Webhook CRUD + test + deliveries
-│   │   ├── notifications/ ← Read/mark notifications
 │   │   ├── integrations/ ← Integration CRUD
 │   │   ├── status/       ← System health endpoint
 │   │   ├── search/       ← Full-text search (tasks + agents)
