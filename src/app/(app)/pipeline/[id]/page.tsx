@@ -6,6 +6,7 @@ import { PIPELINE_STAGE_LABELS } from "@/lib/types";
 import type { PipelineStage } from "@/lib/types";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
+import { FileDown } from "lucide-react";
 import { NotifyHermesButton } from "../_components/notify-hermes-button";
 import { StageActions } from "../_components/stage-actions";
 
@@ -48,6 +49,15 @@ export default async function PipelineDetailPage({ params }: Props) {
       {/* Actions */}
       <div className="flex gap-2">
         <NotifyHermesButton type="pipeline" id={lead.id} />
+        <a
+          href={`/pipeline/${lead.id}/report`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-200 hover:bg-zinc-700"
+        >
+          <FileDown className="h-4 w-4" />
+          Download PDF
+        </a>
         <StageActions leadId={lead.id} currentStage={lead.stage as PipelineStage} />
       </div>
 
