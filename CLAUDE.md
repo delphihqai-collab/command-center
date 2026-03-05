@@ -228,9 +228,9 @@ Mission Control has **dual data sources** — some pages read from Supabase, oth
 | account-executive | Account Executive | worker | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/account-executive/` |
 | account-manager | Account Manager | worker | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/account-manager/` |
 | finance | Finance | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/finance/` |
-| legal | Legal | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/legal/` |
+| legal | Legal | specialist | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/legal/` |
 | market-intelligence | Market Intelligence | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/market-intelligence/` |
-| knowledge-curator | Knowledge Curator | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/knowledge-curator/` |
+| knowledge-curator | Knowledge Curator | specialist | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/knowledge-curator/` |
 
 Agent types: `director`, `worker`, `specialist`
 Agent statuses: `active`, `idle`, `built_not_calibrated`, `offline`

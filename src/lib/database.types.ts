@@ -467,6 +467,77 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_leads: {
+        Row: {
+          closed_at: string | null
+          company_name: string
+          confidence: number | null
+          contact_email: string | null
+          contact_name: string
+          contact_role: string | null
+          created_at: string
+          deal_value_eur: number | null
+          discovery_notes: string | null
+          id: string
+          lost_reason: string | null
+          metadata: Json
+          proposal_url: string | null
+          assigned_agent_id: string | null
+          sdr_brief: string | null
+          source: string
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          company_name: string
+          confidence?: number | null
+          contact_email?: string | null
+          contact_name: string
+          contact_role?: string | null
+          created_at?: string
+          deal_value_eur?: number | null
+          discovery_notes?: string | null
+          id?: string
+          lost_reason?: string | null
+          metadata?: Json
+          proposal_url?: string | null
+          assigned_agent_id?: string | null
+          sdr_brief?: string | null
+          source?: string
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          company_name?: string
+          confidence?: number | null
+          contact_email?: string | null
+          contact_name?: string
+          contact_role?: string | null
+          created_at?: string
+          deal_value_eur?: number | null
+          discovery_notes?: string | null
+          id?: string
+          lost_reason?: string | null
+          metadata?: Json
+          proposal_url?: string | null
+          assigned_agent_id?: string | null
+          sdr_brief?: string | null
+          source?: string
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_leads_assigned_agent_id_fkey"
+            columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           archived_at: string | null

@@ -45,11 +45,11 @@ This is you and your team, as Mission Control sees you:
 | account-executive | Account Executive | worker | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/account-executive/` |
 | account-manager | Account Manager | worker | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/account-manager/` |
 | finance | Finance | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/finance/` |
-| legal | Legal | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/legal/` |
+| legal | Legal | specialist | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/legal/` |
 | market-intelligence | Market Intelligence | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/market-intelligence/` |
-| knowledge-curator | Knowledge Curator | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/knowledge-curator/` |
+| knowledge-curator | Knowledge Curator | specialist | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/knowledge-curator/` |
 
-**Types:** `director` (you), `worker` (Sonnet-class, frontline), `specialist` (Haiku-class, domain focused)
+**Types:** `director` (you), `worker` (Sonnet-class, frontline), `specialist` (Haiku or Sonnet, domain focused)
 
 ---
 
@@ -99,7 +99,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 | Page | Primary Source | Notes |
 |------|---------------|-------|
-| Dashboard, Tasks, Agents | Supabase | Standard CRUD |
+| Dashboard, Tasks, Agents, Pipeline | Supabase | Standard CRUD |
 | Sessions | OpenClaw CLI (`openclaw sessions`) | Supabase `agents` table for metadata fallback |
 | Memory | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/*/memory/` |
 | Workspace Files | Filesystem (`/api/agents/[id]/workspace`) | Reads/writes SOUL.md, IDENTITY.md, etc. |
@@ -125,7 +125,11 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 **Tasks** (`/tasks`) — The centerpiece. 6-column Kanban board: inbox → backlog → todo → in_progress → review → done. Drag-and-drop via @dnd-kit. Creates, assigns, re-prioritizes tasks. Full-text search on task content.
 
-**Task Detail** (`/tasks/[id]`) — Single task view. Title, status, priority, assignee, project, due date. Threaded comments + quality reviews.
+**Task Detail** (`/tasks/[id]`) — Single task view. Title, status, priority, assignee, project, due date. Threaded comments + quality reviews. "Send to Hermes" button triggers OpenClaw to assign work to the appropriate agent.
+
+**Pipeline** (`/pipeline`) — Commercial pipeline board. 6 active stage columns: New Lead → SDR Qualification → Qualified → Discovery → Proposal → Negotiation. Each lead card shows: company name, contact, deal value (EUR), confidence %, assigned agent, time since creation. Header shows total pipeline value and lead count. Click through to lead detail.
+
+**Pipeline Detail** (`/pipeline/[id]`) — Single lead view. Company info, contact details, SDR brief (full markdown), discovery notes, metadata (sector, location, BANT score, compliance). Stage action buttons: Move Forward, Closed Won, Lost, Disqualify. "Send to Hermes" button triggers OpenClaw to process the lead through the next pipeline stage.
 
 **Sessions** (`/sessions`) — Live session monitor. Fetches data via `openclaw sessions --all-agents --json` CLI. Shows per session: agent name, session key, kind (direct/group with color-coded badges), model name, context usage (progress bar — green < 50%, amber < 80%, red > 80%), last activity (relative time), estimated cost (from `model-costs.ts`). Multiple sessions per agent visible (main + cron). Child `:run:` sessions (per-execution cron runs) are filtered out to reduce noise — only the parent cron session is shown.
 
@@ -184,9 +188,14 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - `GET /api/status` — System health (active agents, total tasks, in_progress, open alerts)
 - `GET /api/search` — Full-text search across tasks + agents (min 2 chars)
 
+### Agent API (for Hermes + sub-agents)
+- `GET/POST/PATCH /api/agent/pipeline` — Pipeline lead CRUD. Auth via `Authorization: Bearer <AGENT_API_KEY>`. Agents cannot move leads to `closed_won`, `closed_lost`, or `disqualified` (403). Stage order: new_lead → sdr_qualification → qualified → discovery → proposal → negotiation → closed_won/closed_lost/disqualified
+- `GET/POST/PATCH /api/agent/tasks` — Task CRUD for agents. Same auth. Agents cannot move tasks to `done` (403)
+- `POST /api/agent/notify` — Human-triggered. Sends a contextual prompt to Hermes via `openclaw agent`. Used by "Send to Hermes" buttons on task and pipeline detail pages
+
 ---
 
-## Database — 18 Tables
+## Database — 19 Tables
 
 ### Core
 - **`agents`** — The 8 of you. slug, name, type, status, model, workspace_path, last_seen, capabilities
@@ -196,8 +205,9 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - **`agent_comms`** — Inter-agent messages. Channel routing (general, escalation, etc.)
 - **`heartbeats`** — Cron job fire history
 
-### Tasks
+### Tasks & Pipeline
 - **`tasks`** — The centerpiece table. 6 statuses, 4 priorities, full-text search vector, soft delete via `archived_at`
+- **`pipeline_leads`** — Commercial pipeline tracking. 9 stages (new_lead through closed_won/closed_lost/disqualified). Fields: company_name, contact_name, contact_email, contact_role, source, stage, assigned_agent_id, deal_value_eur, confidence, sdr_brief, discovery_notes, proposal_url, lost_reason, metadata (JSONB)
 - **`task_comments`** — Threaded comments per task
 - **`projects`** — Multi-project organization. Ticket prefix + auto-increment counter
 - **`quality_reviews`** — QA sign-off records per task
@@ -226,6 +236,12 @@ src/
 │   ├── (app)/              ← Protected routes (require auth)
 │   │   ├── dashboard/        Overview KPIs + activity
 │   │   ├── tasks/            Kanban board (6 columns, drag-drop)
+│   │   ├── pipeline/         Commercial pipeline board (6 active stage columns)
+│   │   │   └── _components/
+│   │   │       ├── pipeline-board.tsx   ← Stage columns with lead cards
+│   │   │       ├── pipeline-card.tsx    ← Lead card (company, value, confidence)
+│   │   │       ├── notify-hermes-button.tsx ← "Send to Hermes" trigger
+│   │   │       └── stage-actions.tsx    ← Move forward, close, disqualify
 │   │   ├── agents/           Agent fleet grid
 │   │   ├── agents/[slug]/    Agent detail + workspace editor
 │   │   │   └── _components/
@@ -256,6 +272,7 @@ src/
 │   │   └── settings/         App settings
 │   ├── (auth)/             ← Login page + server actions
 │   └── api/                ← Route handlers
+│       ├── agent/            Agent API (pipeline, tasks, notify) — Bearer token auth
 │       ├── agents/           Agent detail, workspace files, soul, heartbeat, comms
 │       ├── tasks/            Task CRUD + comments
 │       ├── webhooks/         Webhook CRUD + test + deliveries
@@ -276,6 +293,8 @@ src/
 ├── lib/
 │   ├── supabase/server.ts    Server-side client (Server Components + API)
 │   ├── supabase/client.ts    Browser client (Client Components)
+│   ├── supabase/admin.ts     Admin client (service role, bypasses RLS — agent API only)
+│   ├── agent-auth.ts         Agent API key validation (timing-safe compare)
 │   ├── database.types.ts     Auto-generated types (never edit manually)
 │   ├── types.ts              Type aliases: Agent, Task, Project, Webhook...
 │   ├── memory-paths.ts       Agent slug → filesystem memory directory map
@@ -295,7 +314,7 @@ Desktop sidebar (56px collapsed width), 4 groups:
 
 | Group | Items | Icons |
 |-------|-------|-------|
-| *(core)* | Overview · Agents · Tasks · Sessions · Office | Dashboard · Bot · Kanban · Monitor · Building |
+| *(core)* | Overview · Agents · Pipeline · Tasks · Sessions · Office | Dashboard · Bot · GitBranchPlus · Kanban · Monitor · Building |
 | **Observe** | Logs · Tokens · Memory | Scroll · Dollar · Brain |
 | **Automate** | Cron · Webhooks · Alerts | Clock · Webhook · Bell |
 | **Admin** | Audit · Gateways · Integrations · Settings | Clipboard · Server · Plug · Settings |

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
 import { TaskCommentForm } from "../_components/task-comment-form";
 import { TaskReviewForm } from "../_components/task-review-form";
+import { NotifyHermesButton } from "../../pipeline/_components/notify-hermes-button";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -56,6 +57,11 @@ export default async function TaskDetailPage({ params }: Props) {
         {task.ticket_ref && (
           <p className="mt-1 font-mono text-sm text-zinc-500">{task.ticket_ref}</p>
         )}
+      </div>
+
+      {/* Actions */}
+      <div className="flex gap-2">
+        <NotifyHermesButton type="task" id={task.id} />
       </div>
 
       {/* Info */}

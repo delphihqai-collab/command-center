@@ -64,7 +64,21 @@ export default async function SessionsPage() {
   }
 
   // Build session rows: one per OpenClaw session, grouped by agent
-  const sessionRows = allAgents.flatMap((agent) => {
+  interface SessionRow {
+    agentId: string;
+    agentName: string;
+    agentSlug: string;
+    sessionKey: string | null;
+    sessionKind: string | null;
+    model: string | null;
+    totalTokens: number | null;
+    contextTokens: number | null;
+    estimatedCost: number | null;
+    lastActivity: string | null;
+    contextUsagePercent: number | null;
+  }
+
+  const sessionRows: SessionRow[] = allAgents.flatMap((agent): SessionRow[] => {
     const agentSessions = sessionsByAgent.get(agent.slug) ?? [];
     if (agentSessions.length === 0) {
       return [

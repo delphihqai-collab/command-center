@@ -21,6 +21,7 @@ export type AgentSoul = Database["public"]["Tables"]["agent_souls"]["Row"];
 export type AgentComm = Database["public"]["Tables"]["agent_comms"]["Row"];
 export type Integration = Database["public"]["Tables"]["integrations"]["Row"];
 export type SystemConfig = Database["public"]["Tables"]["system_config"]["Row"];
+export type PipelineLead = Database["public"]["Tables"]["pipeline_leads"]["Row"];
 
 // ── Shared utilities ──────────────────────────────────────────────────
 export type ServerActionResult<T = void> =
@@ -34,3 +35,27 @@ export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 export const TASK_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
+
+export const PIPELINE_STAGES = [
+  "new_lead", "sdr_qualification", "qualified", "discovery",
+  "proposal", "negotiation", "closed_won", "closed_lost", "disqualified",
+] as const;
+export type PipelineStage = (typeof PIPELINE_STAGES)[number];
+
+export const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
+  new_lead: "New Lead",
+  sdr_qualification: "SDR Qualification",
+  qualified: "Qualified (SQL)",
+  discovery: "Discovery",
+  proposal: "Proposal",
+  negotiation: "Negotiation",
+  closed_won: "Closed Won",
+  closed_lost: "Closed Lost",
+  disqualified: "Disqualified",
+};
+
+/** Stages that agents can move leads to. Closed stages require human action. */
+export const AGENT_ALLOWED_STAGES: readonly PipelineStage[] = [
+  "new_lead", "sdr_qualification", "qualified", "discovery",
+  "proposal", "negotiation",
+] as const;

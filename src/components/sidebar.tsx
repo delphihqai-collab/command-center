@@ -20,6 +20,7 @@ import {
   Webhook,
   Clock,
   Plug,
+  GitBranchPlus,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 
@@ -39,6 +40,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/agents", label: "Agents", icon: Bot },
+      { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
       { href: "/tasks", label: "Tasks", icon: KanbanSquare },
       { href: "/sessions", label: "Sessions", icon: Monitor },
       { href: "/office", label: "Office", icon: Building2 },
