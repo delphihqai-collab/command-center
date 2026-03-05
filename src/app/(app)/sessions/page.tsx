@@ -50,9 +50,14 @@ export default async function SessionsPage() {
   const allAgents = agentsResult.data ?? [];
   const { sessions: openclawSessions, error: cliError } = sessionsResult;
 
+  // Filter out :run: child sessions — they duplicate the parent cron session data
+  const filteredSessions = openclawSessions.filter(
+    (s) => !/:run:[0-9a-f-]+$/.test(s.key)
+  );
+
   // Build a map: agentSlug → array of sessions (an agent can have multiple)
   const sessionsByAgent = new Map<string, OpenClawSession[]>();
-  for (const s of openclawSessions) {
+  for (const s of filteredSessions) {
     const existing = sessionsByAgent.get(s.agentId) ?? [];
     existing.push(s);
     sessionsByAgent.set(s.agentId, existing);
@@ -101,7 +106,7 @@ export default async function SessionsPage() {
       }));
   });
 
-  const activeCount = openclawSessions.length;
+  const activeCount = filteredSessions.length;
 
   return (
     <div className="space-y-4">

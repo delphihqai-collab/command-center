@@ -127,7 +127,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 **Task Detail** (`/tasks/[id]`) — Single task view. Title, status, priority, assignee, project, due date. Threaded comments + quality reviews.
 
-**Sessions** (`/sessions`) — Live session monitor. Fetches data via `openclaw sessions --all-agents --json` CLI. Shows per session: agent name, session key, kind (direct/group with color-coded badges), model name, context usage (progress bar — green < 50%, amber < 80%, red > 80%), last activity (relative time), estimated cost (from `model-costs.ts`). Multiple sessions per agent visible (Discord channels, cron runs, direct sessions).
+**Sessions** (`/sessions`) — Live session monitor. Fetches data via `openclaw sessions --all-agents --json` CLI. Shows per session: agent name, session key, kind (direct/group with color-coded badges), model name, context usage (progress bar — green < 50%, amber < 80%, red > 80%), last activity (relative time), estimated cost (from `model-costs.ts`). Multiple sessions per agent visible (main + cron). Child `:run:` sessions (per-execution cron runs) are filtered out to reduce noise — only the parent cron session is shown.
 
 **Office** (`/office`) — Pixel-art grid. Agents displayed as tiles with rank (director/senior/standard/support/research). Shows status, last heartbeat, recent logs. Visual overview of fleet health.
 
