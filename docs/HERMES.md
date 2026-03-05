@@ -459,6 +459,19 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 - `src/app/(app)/cron/actions.ts` — rewired `toggleCronJob` and `triggerCronJob` to use `openclaw cron edit` and `openclaw cron run` CLI commands instead of Supabase updates.
 - `src/app/(app)/cron/_components/cron-actions.tsx` — updated imports to match renamed action functions.
 
+### 2026-03-05 — Dropped 9 unused Supabase tables
+
+**Scope:** Full audit of all 27 Supabase tables vs application code. Found 9 tables never queried by any page, API route, or action. Dropped them to keep the schema clean — they can be recreated if needed.
+
+**Tables dropped:** `scheduled_tasks`, `task_subscriptions`, `workflows`, `pipeline_runs`, `standup_reports`, `notifications`, `chat_conversations`, `chat_messages`, `github_issues`
+
+**Tables retained (18):** `agents`, `agent_reports`, `agent_logs`, `agent_souls`, `agent_token_usage`, `agent_comms`, `heartbeats`, `tasks`, `task_comments`, `quality_reviews`, `projects`, `webhooks`, `webhook_deliveries`, `integrations`, `alert_rules`, `alert_events`, `audit_log`, `system_config`
+
+**Changes:**
+- `supabase/migrations/20260305100000_drop_unused_tables.sql` — new migration dropping 9 tables
+- `src/lib/database.types.ts` — regenerated from live schema
+- `src/lib/types.ts` — removed 9 dead type aliases (ChatConversation, ChatMessage, TaskSubscription, ScheduledTask, StandupReport, Workflow, PipelineRun, Notification, GithubIssue)
+
 ### 2026-03-05 — Cron page: group jobs by agent
 
 **Scope:** Reorganised the Scheduler page to group cron jobs by agent instead of a flat list. Each agent gets a labelled section with a Bot icon, agent display name, and job count. Jobs within each group show schedule, target, last/next run — the redundant "Agent:" field was removed since the grouping makes it obvious. Agent groups are ordered: Hermes first, then workers (SDR, AE, AM), then specialists.
