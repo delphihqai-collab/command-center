@@ -179,26 +179,11 @@ openclaw status                                # Gateway health
 
 ---
 
-## HERMES Reports — MANDATORY
+## HERMES Guide — Living Document
 
-Every implementation session **must** end with a HERMES report committed and pushed. No exceptions. The session is **not complete** until this is done.
+`docs/HERMES.md` is a single living document that explains the entire codebase to Hermes. After every implementation session, **append a changelog entry** to the `## Changelog` section at the bottom of `docs/HERMES.md` — do not create separate report files.
 
-### Report Location & Naming
-- Directory: `docs/hermes-reports/`
-- File format: `hermes-report-vX.md` (increment version number from previous report)
-- Check existing reports first: `ls docs/hermes-reports/` to determine the next version
-
-### Report Structure
-Each report must include:
-
-1. **Version & Metadata** — version number, date (YYYY-MM-DD), scope
-2. **What Was Implemented** — summary of work, features added, bugs fixed
-3. **Files Changed** — list of new/modified files with brief descriptions
-4. **Issues Found** — bugs, workarounds, limitations discovered
-5. **What to Validate Next** — testing checkpoints, recommended validation steps
-
-### Purpose
-These reports are Delphi's continuous audit trail. They serve as historical record, deployment checklist, and knowledge base.
+Each changelog entry must include: date, scope summary, files added/changed, and known issues.
 
 ---
 
@@ -207,9 +192,9 @@ These reports are Delphi's continuous audit trail. They serve as historical reco
 Before ending ANY implementation session, you MUST complete this checklist in order:
 
 1. **Build passes** — run `next build` and confirm zero errors
-2. **HERMES report created** — `docs/hermes-reports/hermes-report-vX.md` with all 5 sections
-3. **Git commit** — `git add -A && git commit -m "docs: hermes report vX — <summary>"`
+2. **HERMES.md updated** — append changelog entry to `docs/HERMES.md`
+3. **Git commit** — `git add -A && git commit -m "<type>: <summary>"`
 4. **Git push** — `git push`
 5. **Service restart** (if code changed) — `systemctl --user restart command-center`
 
-⚠️ If you skip any of these steps, the session is considered incomplete. Always check `ls docs/hermes-reports/` at the start of a session to know the current version number.
+⚠️ If you skip any of these steps, the session is considered incomplete.

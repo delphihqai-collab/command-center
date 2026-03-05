@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format, formatDistanceToNow } from "date-fns";
-import { Sparkles } from "lucide-react";
+import { WorkspaceFiles } from "./_components/workspace-files";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -131,17 +131,11 @@ export default async function AgentDetailPage({ params }: Props) {
               </div>
             )}
           </div>
-          <div className="mt-4">
-            <Link
-              href={`/agents/${agent.slug}/soul`}
-              className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700 transition-colors"
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Edit SOUL
-            </Link>
-          </div>
         </CardContent>
       </Card>
+
+      {/* Workspace Files */}
+      <WorkspaceFiles agentId={agent.id} />
 
       {/* Assigned Tasks */}
       <Card className="border-zinc-800 bg-zinc-900">

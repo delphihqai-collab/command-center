@@ -322,18 +322,14 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 
 ---
 
-## HERMES Reports — MANDATORY
+## HERMES Guide — Living Document
 
-Every implementation session must end with a HERMES report committed and pushed.
-
-- Directory: `docs/hermes-reports/`
-- Format: `hermes-report-vX.md`
-- Sections: Version & Metadata, What Was Implemented, Files Changed, Issues Found, What to Validate Next
+`docs/HERMES.md` is a single living document that explains the entire codebase to Hermes. After every implementation session, **append a changelog entry** to the `## Changelog` section at the bottom — do not create separate report files.
 
 ## Session Completion Protocol — MANDATORY
 
 1. Build passes — `next build` zero errors
-2. HERMES report created
+2. HERMES.md updated — append changelog entry
 3. Git commit + push
 4. Service restart if code changed — `systemctl --user restart command-center`
 
