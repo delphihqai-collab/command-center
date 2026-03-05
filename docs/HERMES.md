@@ -449,3 +449,12 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 
 **Dependencies added:**
 - `@tailwindcss/typography` — for markdown prose rendering
+
+### 2026-03-05 — Cron page: rewired to OpenClaw CLI
+
+**Scope:** The cron/scheduler page was reading from Supabase `scheduled_tasks` (empty table). Rewired to fetch live data from `openclaw cron list --json` — now shows all 16 cron jobs with real state.
+
+**Changes:**
+- `src/app/(app)/cron/page.tsx` — replaced Supabase query with `execFileAsync(OPENCLAW_BIN, ["cron", "list", "--json"])`. Displays agent, schedule expression, session target, last run time/duration, next run, consecutive errors. Added `force-dynamic` export.
+- `src/app/(app)/cron/actions.ts` — rewired `toggleCronJob` and `triggerCronJob` to use `openclaw cron edit` and `openclaw cron run` CLI commands instead of Supabase updates.
+- `src/app/(app)/cron/_components/cron-actions.tsx` — updated imports to match renamed action functions.
