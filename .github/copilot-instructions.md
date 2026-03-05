@@ -2,11 +2,61 @@
 
 ## Project Identity
 
-AI agent orchestration dashboard. Next.js 16 + Supabase. Dark theme. Port 9069 on a private Linux machine.
+Orchestration dashboard for **Hermes** — a commercial AI agent fleet running on **OpenClaw**. Next.js 16 + Supabase. Dark theme. Port 9069 on a private Linux machine.
+
+**Owner:** Delphi. Single-user system. No multi-tenancy.
 
 ## Stack
 
-Next.js 16 App Router · React 19 · TypeScript (strict) · Tailwind CSS v4 · shadcn/ui · Supabase SSR · Recharts · date-fns · Lucide icons · Sonner
+Next.js 16 App Router · React 19 · TypeScript (strict) · Tailwind CSS v4 · shadcn/ui · Supabase SSR · Recharts · date-fns · Lucide icons · Sonner · @dnd-kit
+
+## OpenClaw — The Agent Runtime
+
+OpenClaw is the self-hosted AI agent gateway on this machine. Gateway WebSocket on `ws://127.0.0.1:18789`.
+
+- **Workspace:** Each agent gets an isolated directory with structured template files
+- **Channels:** Discord as primary channel. Agents bound via `openclaw agents bind`
+- **Sessions:** `main` (default) or `isolated` (parallel). Sessions route through the gateway
+- **Subagents:** Parent agents spawn background sub-agent runs via `subagent` tool
+- **Cron:** Jobs in `~/.openclaw/cron/jobs.json`. Types: `at`, `every`, `cron`. Targets: `main` or `isolated`
+
+### Agent Fleet — Hermes Commercial
+
+8 agents. Hermes = director. 7 sub-agents = workers + specialists.
+
+| Slug | Type | Model | Workspace |
+|------|------|-------|-----------|
+| hermes | director | claude-sonnet-4-6 | `~/.openclaw/workspace/` |
+| sdr | worker | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/sdr/` |
+| account-executive | worker | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/account-executive/` |
+| account-manager | worker | claude-sonnet-4-6 | `~/.openclaw/workspace/teams/commercial/account-manager/` |
+| finance | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/finance/` |
+| legal | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/legal/` |
+| market-intelligence | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/market-intelligence/` |
+| knowledge-curator | specialist | claude-haiku-4-5-20251001 | `~/.openclaw/workspace/teams/commercial/knowledge-curator/` |
+
+### Workspace Template Files
+
+Each agent workspace contains: `SOUL.md` (personality/mission), `IDENTITY.md` (role/model/capabilities), `AGENTS.md` (sub-agent roster), `TOOLS.md` (available tools), `USER.md` (owner context), `BOOTSTRAP.md` (first-run), `HEARTBEAT.md` (periodic check-in), `BOOT.md` (session startup), `memory/` (agent memory directory).
+
+### OpenClaw CLI
+
+```bash
+openclaw agents list|add|delete|bind|unbind|set-identity
+openclaw cron list|add|edit|remove|run|runs
+openclaw config|status
+```
+
+### Dual Data Sources
+
+| Page | Source | Notes |
+|------|--------|-------|
+| Dashboard, Tasks, Agents | Supabase | Standard CRUD |
+| Sessions | Gateway API (`localhost:18789`) | Falls back to Supabase |
+| Memory | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/` |
+| Gateway | Gateway API (`localhost:18789/config`) | Config viewer |
+| Cron | OpenClaw (`~/.openclaw/cron/jobs.json`) | `openclaw cron` CLI |
+| Logs | journalctl + Supabase | System logs |
 
 ## Coding Style
 
@@ -46,6 +96,7 @@ import { Bot, Target, Users } from "lucide-react";
 - shadcn/ui primitives: `src/components/ui/` — do not edit
 - Supabase clients: `src/lib/supabase/client.ts` and `server.ts`
 - Generated types: `src/lib/database.types.ts` — do not edit manually
+- Agent memory paths: `src/lib/memory-paths.ts` — maps agent slugs to filesystem dirs
 
 ## Tailwind Conventions
 
@@ -71,6 +122,14 @@ Status colours:
 - TypeScript interfaces: PascalCase (`Task`, `Agent`, `Webhook`)
 - Server actions: camelCase verb (`createTask`, `moveTask`, `toggleWebhook`)
 
+## OpenClaw Integration Rules
+
+- Route Handlers that call OpenClaw CLI: `execFile("openclaw", [...args])` — never `exec()`
+- Route Handlers that read OpenClaw files: validate paths, prevent directory traversal
+- Gateway API calls: `fetch("http://127.0.0.1:18789/...")` — local only, via API route
+- Never call gateway from client-side code — always through Next.js API routes
+- Never hardcode workspace paths in components — use `MEMORY_PATHS` from `src/lib/memory-paths.ts`
+
 ## Do Not
 
 - Do not import server client in Client Components
@@ -82,6 +141,9 @@ Status colours:
 - Do not write raw SQL in application code — use the Supabase query builder
 - Do not add `console.log` in production paths — use structured error handling
 - Do not skip the `.error` check from Supabase responses
+- Do not use `exec()` for shell commands — always `execFile()`
+- Do not expose the OpenClaw gateway port to external networks
+- Do not hardcode agent workspace paths — use `MEMORY_PATHS`
 
 ## Migrations — Critical Notes
 
@@ -101,6 +163,19 @@ Always build with env vars:
 NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 ```
 Then restart the systemd service: `systemctl --user restart command-center`
+
+## Running
+
+```bash
+npm run dev                                    # Dev server on port 9069
+systemctl --user status command-center         # Production service
+systemctl --user restart command-center        # Restart after deploy
+journalctl --user -u command-center -f         # Tail logs
+systemctl --user status openclaw               # OpenClaw gateway
+openclaw agents list                           # List agents
+openclaw cron list                             # List cron jobs
+openclaw status                                # Gateway health
+```
 
 ---
 
