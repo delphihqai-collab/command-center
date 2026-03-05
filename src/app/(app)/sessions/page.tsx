@@ -1,62 +1,103 @@
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Monitor } from "lucide-react";
 import { SessionsTableClient } from "./_components/sessions-table-client";
+import { execFile } from "child_process";
+import { promisify } from "util";
+import { calculateCost } from "@/lib/model-costs";
+
+const execFileAsync = promisify(execFile);
+
+interface OpenClawSession {
+  key: string;
+  agentId: string;
+  kind: string;
+  model: string;
+  modelProvider: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  contextTokens: number;
+  updatedAt: number;
+  ageMs: number;
+  sessionId: string;
+}
 
 export default async function SessionsPage() {
   const supabase = await createClient();
 
-  const { data: agents } = await supabase
-    .from("agents")
-    .select("id, slug, name, status")
-    .order("created_at", { ascending: true });
+  // Fetch agents from Supabase + sessions from OpenClaw CLI in parallel
+  const [agentsResult, sessionsResult] = await Promise.all([
+    supabase
+      .from("agents")
+      .select("id, slug, name, status")
+      .order("created_at", { ascending: true }),
+    execFileAsync("openclaw", ["sessions", "--all-agents", "--json"])
+      .then((result) => {
+        const data = JSON.parse(result.stdout) as {
+          count: number;
+          sessions: OpenClawSession[];
+        };
+        return { sessions: data.sessions, error: null };
+      })
+      .catch(() => ({ sessions: [] as OpenClawSession[], error: "CLI failed" })),
+  ]);
 
-  // Try to fetch gateway sessions
-  let gatewaySessions: {
-    session_key: string;
-    agent_slug: string;
-    status: string;
-    started_at: string;
-    last_activity_at: string;
-    estimated_cost_usd: number;
-  }[] = [];
+  const allAgents = agentsResult.data ?? [];
+  const { sessions: openclawSessions, error: cliError } = sessionsResult;
 
-  try {
-    const res = await fetch("http://localhost:18789/sessions", { cache: "no-store" });
-    if (res.ok) {
-      gatewaySessions = await res.json();
-    }
-  } catch {
-    // Gateway not reachable — fall back to empty
+  // Build a map: agentSlug → array of sessions (an agent can have multiple)
+  const sessionsByAgent = new Map<string, OpenClawSession[]>();
+  for (const s of openclawSessions) {
+    const existing = sessionsByAgent.get(s.agentId) ?? [];
+    existing.push(s);
+    sessionsByAgent.set(s.agentId, existing);
   }
 
-  // Fallback: use agent_logs for recent activity if no gateway sessions
-  const { data: recentLogs } = await supabase
-    .from("agent_logs")
-    .select("agent_id, action, created_at")
-    .order("created_at", { ascending: false })
-    .limit(50);
-
-  const allAgents = agents ?? [];
-  const allLogs = recentLogs ?? [];
-
-  // Build session data: left-join agents against gateway sessions
-  const sessionRows = allAgents.map((agent) => {
-    const session = gatewaySessions.find((s) => s.agent_slug === agent.slug);
-    const lastLog = allLogs.find((l) => l.agent_id === agent.id);
-
-    return {
-      agentId: agent.id,
-      agentName: agent.name,
-      agentSlug: agent.slug,
-      agentStatus: agent.status,
-      sessionKey: session?.session_key ?? null,
-      sessionStatus: session?.status ?? null,
-      startedAt: session?.started_at ?? null,
-      lastActivity: session?.last_activity_at ?? lastLog?.created_at ?? null,
-      estimatedCost: session?.estimated_cost_usd ?? null,
-    };
+  // Build session rows: one per OpenClaw session, grouped by agent
+  const sessionRows = allAgents.flatMap((agent) => {
+    const agentSessions = sessionsByAgent.get(agent.slug) ?? [];
+    if (agentSessions.length === 0) {
+      return [
+        {
+          agentId: agent.id,
+          agentName: agent.name,
+          agentSlug: agent.slug,
+          sessionKey: null,
+          sessionKind: null,
+          model: null,
+          totalTokens: null,
+          contextTokens: null,
+          estimatedCost: null,
+          lastActivity: null,
+          contextUsagePercent: null,
+        },
+      ];
+    }
+    return agentSessions
+      .sort((a, b) => a.ageMs - b.ageMs) // most recent first
+      .map((s) => ({
+        agentId: agent.id,
+        agentName: agent.name,
+        agentSlug: agent.slug,
+        sessionKey: s.key,
+        sessionKind: s.kind,
+        model: s.model,
+        totalTokens: s.totalTokens,
+        contextTokens: s.contextTokens,
+        estimatedCost:
+          s.inputTokens && s.outputTokens
+            ? calculateCost(s.model, s.inputTokens, s.outputTokens)
+            : null,
+        lastActivity: s.updatedAt ? new Date(s.updatedAt).toISOString() : null,
+        contextUsagePercent:
+          s.totalTokens && s.contextTokens
+            ? Math.round((s.totalTokens / s.contextTokens) * 100)
+            : null,
+      }));
   });
+
+  const activeCount = openclawSessions.length;
 
   return (
     <div className="space-y-4">
@@ -64,9 +105,9 @@ export default async function SessionsPage() {
         <Monitor className="h-5 w-5 text-zinc-400" />
         <h1 className="text-2xl font-semibold text-zinc-50">Sessions</h1>
         <span className="text-sm text-zinc-500">
-          {gatewaySessions.length > 0
-            ? `${gatewaySessions.filter((s) => s.status === "active").length} active`
-            : "Gateway offline — showing fallback data"}
+          {cliError
+            ? "OpenClaw CLI unavailable"
+            : `${activeCount} sessions across ${sessionsByAgent.size} agents`}
         </span>
       </div>
 

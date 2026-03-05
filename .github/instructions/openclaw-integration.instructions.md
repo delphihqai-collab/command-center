@@ -11,10 +11,10 @@ Mission Control has dual data sources. Know which pages read from which:
 | Feature | Source | Access Pattern |
 |---------|--------|---------------|
 | Agents, Tasks, Dashboard | Supabase | Query builder |
-| Sessions | Gateway API | `fetch("http://127.0.0.1:18789/...")` via Route Handler |
+| Sessions | OpenClaw CLI | `execFile("openclaw", ["sessions", "--all-agents", "--json"])` |
 | Memory | Filesystem | Route Handler reads `~/.openclaw/workspace/` |
-| Cron | OpenClaw | `execFile("openclaw", ["cron", "list", "--json"])` via Route Handler |
-| Gateway Config | Gateway API | `fetch("http://127.0.0.1:18789/config")` via Route Handler |
+| Cron | OpenClaw CLI | `execFile("openclaw", ["cron", "list", "--json"])` via Route Handler |
+| Gateway Config | Gateway SPA | Port 18789 serves dashboard SPA, no REST API |
 
 ## Agent Workspace Paths
 

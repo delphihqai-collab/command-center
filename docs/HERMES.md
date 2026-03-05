@@ -345,6 +345,24 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 **Files changed:**
 - `src/app/(app)/agents/[slug]/_components/workspace-files.tsx` — complete rewrite (~370 lines)
 
+### 2026-03-05 — Sessions Page Fixed (Session 11)
+
+**What:** Sessions page was always showing "Gateway offline — showing fallback data" because it tried to fetch `http://localhost:18789/sessions` — but the OpenClaw gateway is a SPA dashboard with no REST API. Fixed to use `openclaw sessions --all-agents --json` via `execFile` which returns real session data.
+
+**New data shown:**
+- Session key (full `agent:slug:session` format)
+- Session kind (direct / group) with color-coded badges
+- Model name (shortened)
+- Context usage — progress bar showing tokens used / context window (color-coded: green < 50%, amber < 80%, red > 80%)
+- Last activity (relative time via date-fns)
+- Estimated cost (calculated from input/output tokens using model-costs.ts)
+- Multiple sessions per agent (Discord channels, cron runs, direct sessions)
+
+**Files changed:**
+- `src/app/(app)/sessions/page.tsx` — replaced broken gateway fetch with `execFile("openclaw", ["sessions", "--all-agents", "--json"])`
+- `src/app/(app)/sessions/_components/sessions-table-client.tsx` — new columns: kind, model, context usage bar
+- `.github/instructions/openclaw-integration.instructions.md` — corrected data source table (gateway has no REST API)
+
 ---
 
 ### 2026-03-05 — Copilot Instructions Overhaul (Session 8)
