@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
   const grep = searchParams.get("grep");
 
   const units = UNIT_MAP[source] ?? UNIT_MAP.all;
-  const lines = Math.min(Math.max(Number(linesParam) || 200, 1), 500);
+  const lines = Math.min(Math.max(Number(linesParam) || 500, 1), 1000);
 
   const entries = await readJournal(units, since, lines, grep);
 

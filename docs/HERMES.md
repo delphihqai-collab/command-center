@@ -1,6 +1,6 @@
 # Mission Control — The Complete Guide
 
-> **For Hermes.** This is the single source of truth about the Mission Control codebase — your orchestration dashboard. It's a living document that grows with every change. Read this to understand everything.
+> **For Hermes.** This is the single source of truth about the Mission Control codebase — your orchestration dashboard. Every section describes how things work **right now**. When the codebase changes, the relevant section gets updated — not appended to.
 
 ---
 
@@ -27,6 +27,7 @@ You don't interact with Mission Control directly. You interact with OpenClaw. Bu
 | Validation | Zod |
 | Toasts | Sonner |
 | Search | SWR (command palette) |
+| Markdown | react-markdown + @tailwindcss/typography |
 | Shell | `execFile` (never `exec` — injection-safe) |
 
 **Node:** v22.22.0 · **Port:** 9069 · **Service:** `command-center.service` (systemd user unit)
@@ -54,11 +55,11 @@ This is you and your team, as Mission Control sees you:
 
 ## OpenClaw — Your Runtime
 
-OpenClaw is the self-hosted AI agent gateway on this machine. Gateway WebSocket on `ws://127.0.0.1:18789`.
+OpenClaw is the self-hosted AI agent gateway on this machine. Gateway WebSocket on `ws://127.0.0.1:18789`. Binary at `/home/delphi/.nvm/versions/node/v22.22.0/bin/openclaw`.
 
 ### Workspace Files
 
-Each agent has an isolated workspace directory containing configuration files. Mission Control can read and write all of them:
+Each agent has an isolated workspace directory containing configuration files. Mission Control can read and write all of them via `GET/PUT /api/agents/[id]/workspace`:
 
 | File | Purpose |
 |------|---------|
@@ -73,37 +74,42 @@ Each agent has an isolated workspace directory containing configuration files. M
 | `MEMORY.md` | Long-term curated memory |
 | `SUBAGENT-POLICY.md` | *(Hermes only)* Sub-agent spawning policy |
 
-Your workspace has all of these plus extra directories (docs, templates, playbooks, skills, memory). Sub-agents have fewer — typically SOUL, IDENTITY, USER, AGENTS, TOOLS, HEARTBEAT + memory/.
+The workspace editor on the agent detail page provides a tabbed interface with Preview/Code toggle. Preview renders markdown via `react-markdown` with `prose-invert` typography styling. Code mode shows a raw textarea. Dirty tracking marks unsaved files. SOUL.md writes also sync to Supabase `agent_souls` table.
 
 ### Cron System
 
-16 active cron jobs: 5 for you (orchestration duties) + 11 for sub-agents (heartbeats). Jobs live in `~/.openclaw/cron/jobs.json`. Schedule types: `at`, `every`, `cron`. Session targets: `main` or `isolated`.
+16 active cron jobs: 5 for you (orchestration duties) + 11 for sub-agents (heartbeats). Jobs live in `~/.openclaw/cron/jobs.json`. Run history stored as JSONL files in `~/.openclaw/cron/runs/`. Schedule types: `at`, `every`, `cron`. Session targets: `main` or `isolated`.
 
 ### CLI
 
 ```bash
 openclaw agents list|add|delete|bind|unbind|set-identity
 openclaw cron list|add|edit|remove|run|runs
+openclaw sessions --all-agents --json
 openclaw config|status
 ```
+
+**Note:** The gateway at `localhost:18789` serves a SPA dashboard only — it has no REST API. All data fetching uses the CLI via `execFile`, not HTTP requests to the gateway.
 
 ---
 
 ## Data Sources — The Dual Architecture
 
-Mission Control doesn't get all its data from one place. Some comes from Supabase, some from your filesystem, some from the Gateway API:
+Mission Control doesn't get all its data from one place. Some comes from Supabase, some from OpenClaw CLI, some from the filesystem:
 
 | Page | Primary Source | Notes |
 |------|---------------|-------|
-| Dashboard, Tasks, Agents | Supabase | Standard CRUD + Realtime subscriptions |
-| Sessions | Gateway API (`localhost:18789`) | Falls back to Supabase `agent_logs` when gateway offline |
+| Dashboard, Tasks, Agents | Supabase | Standard CRUD |
+| Sessions | OpenClaw CLI (`openclaw sessions`) | Supabase `agents` table for metadata fallback |
 | Memory | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/*/memory/` |
 | Workspace Files | Filesystem (`/api/agents/[id]/workspace`) | Reads/writes SOUL.md, IDENTITY.md, etc. |
 | Gateway Config | Gateway API (`localhost:18789/config`) | Read-only config viewer |
-| Cron | OpenClaw (`~/.openclaw/cron/jobs.json`) | Via `openclaw cron` CLI |
-| Logs | journalctl + Supabase | System logs from journald + agent_logs table |
-| Costs | Supabase (`agent_token_usage`) | Token tracking per agent per model |
+| Cron | OpenClaw CLI (`openclaw cron list --json`) | Jobs + run state from CLI |
+| Costs | OpenClaw CLI + Filesystem | Cron run JSONL files + live sessions CLI |
+| Logs | journalctl + Supabase | System logs from journald + `agent_logs` table |
 | Audit | Supabase (`audit_log`) | Immutable append-only trail |
+| Webhooks, Alerts, Integrations | Supabase | Standard CRUD |
+| Settings | Supabase (`system_config`) | Key-value config store |
 
 ---
 
@@ -111,17 +117,17 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 ### Core Navigation
 
-**Dashboard** (`/dashboard`) — Home page. 5 KPI tiles: active tasks, in-review count, active agents, open alerts, MTD token cost. All fetched via `Promise.all()` for parallel queries. Realtime refresh on changes.
+**Dashboard** (`/dashboard`) — Home page. 5 KPI tiles: active tasks, in-review count, active agents, open alerts, MTD token cost. All fetched via `Promise.all()` for parallel queries.
 
 **Agents** (`/agents`) — Grid of all 8 agents. Cards show: name, type badge, model, slug, status. Click through to detail page.
 
-**Agent Detail** (`/agents/[slug]`) — Full agent profile. Shows: slug, type, model, last_seen, capabilities. Sections: identity card, **workspace file editor** (tabbed, all config files), 10 recent reports, 50 action logs, 10 assigned tasks, 10 recent comms. The workspace editor reads/writes files directly from the OpenClaw filesystem.
+**Agent Detail** (`/agents/[slug]`) — Full agent profile. Shows: slug, type, model, last_seen, capabilities. Sections: identity card, **workspace file editor** (tabbed, all config files with Preview/Code toggle), 10 recent reports, 50 action logs, 10 assigned tasks, 10 recent comms.
 
 **Tasks** (`/tasks`) — The centerpiece. 6-column Kanban board: inbox → backlog → todo → in_progress → review → done. Drag-and-drop via @dnd-kit. Creates, assigns, re-prioritizes tasks. Full-text search on task content.
 
 **Task Detail** (`/tasks/[id]`) — Single task view. Title, status, priority, assignee, project, due date. Threaded comments + quality reviews.
 
-**Sessions** (`/sessions`) — Live session monitor. Calls Gateway WebSocket for active sessions. Shows: agent, session key, status, started_at, last_activity, estimated_cost. Falls back to Supabase `agent_logs` if gateway unreachable.
+**Sessions** (`/sessions`) — Live session monitor. Fetches data via `openclaw sessions --all-agents --json` CLI. Shows per session: agent name, session key, kind (direct/group with color-coded badges), model name, context usage (progress bar — green < 50%, amber < 80%, red > 80%), last activity (relative time), estimated cost (from `model-costs.ts`). Multiple sessions per agent visible (Discord channels, cron runs, direct sessions).
 
 **Office** (`/office`) — Pixel-art grid. Agents displayed as tiles with rank (director/senior/standard/support/research). Shows status, last heartbeat, recent logs. Visual overview of fleet health.
 
@@ -129,15 +135,15 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 **Logs** (`/logs`) — Unified log viewer. Agent selectable from dropdown. Fetches from `agent_logs` (Supabase) + journal entries via `/api/logs/journal`.
 
-**Costs** (`/costs`) — Token cost dashboard. KPIs: today, this week, this month, all-time. Agent breakdown table: input tokens, output tokens, cost USD. Chart via Recharts. Export button.
+**Costs** (`/costs`) — Token cost dashboard. Reads from two OpenClaw sources: (1) cron run JSONL files at `~/.openclaw/cron/runs/*.jsonl` for historical per-run token usage, and (2) live session data from `openclaw sessions --all-agents --json`. Costs calculated using rates from `model-costs.ts` (Sonnet: $3/$15 per MTok, Haiku: $0.25/$1.25 per MTok). KPIs: today, this week, this month, all-time. Agent breakdown table merges both sources. Cost trend chart via Recharts. CSV export via props-based client component. Deduplicates `:run:` session keys to avoid double-counting.
 
-**Memory** (`/memory`) — Browse agent memory files without SSH. Dropdown to pick agent. Fetches via `/api/memory` route handler. Supports: list files, read single file, grep search.
+**Memory** (`/memory`) — Split-panel layout. Left: file browser sidebar. Right: content with Preview/Code toggle. Agent selector uses horizontal pill-style tabs with per-agent icons (Crown for Hermes, Megaphone for SDR, Handshake for AE, UserCheck for AM, Calculator for Finance, Scale for Legal, BarChart3 for MI, BookOpen for KC). Full-text search within selected agent's memory. Markdown preview via `react-markdown` with `prose-invert` styling. Fetches via `/api/memory` route handler.
 
 ### Automate
 
-**Cron** (`/cron`) — Scheduler UI. Note: currently reads from Supabase `scheduled_tasks` table (needs rewrite to OpenClaw).
+**Cron** (`/cron`) — Scheduler UI. Reads live data via `openclaw cron list --json`. Jobs grouped by agent with filter pills at the top ("All" + one pill per agent showing job count). Agent groups ordered: Hermes first, workers (SDR, AE, AM), then specialists. Each job card shows: schedule expression, session target, last run time + duration, next run, consecutive error count. Enable/disable and "Run Now" actions via `openclaw cron edit` and `openclaw cron run` CLI commands.
 
-**Webhooks** (`/webhooks`) — CRUD webhooks. Shows: name, URL, events, consecutive failures, created date. Test button sends sample payload via `/api/webhooks/[id]/test`.
+**Webhooks** (`/webhooks`) — CRUD webhooks. Shows: name, URL, events, consecutive failures, created date. Test button sends sample payload via `/api/webhooks/[id]/test`. "New Webhook" dialog with name, URL, secret, event checkboxes.
 
 **Alerts** (`/alerts`) — Active unresolved alerts. Shows: rule name + description, severity, created_at.
 
@@ -145,11 +151,11 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 **Audit Log** (`/audit-log`) — Immutable audit trail. Filters: agent/user, action, date range. Shows: timestamp, user_email, action, entity_type, entity_id, changes (JSON). Max 100 per page.
 
-**Gateway** (`/gateway`) — Read-only gateway config viewer. Shows: model, sub_agent_model, scheduled jobs. Alert if gateway unreachable.
+**Gateway** (`/gateway`) — Read-only gateway config viewer. Fetches from `localhost:18789/config`. Shows: model, sub_agent_model, scheduled jobs. Alert if gateway unreachable.
 
 **Integrations** (`/integrations`) — Third-party connections. Grid layout. Shows: name, type badge, last sync, enabled toggle.
 
-**Settings** (`/settings`) — Tabs: Account (email, last sign-in), Scheduler, Agents, Data Retention. System version: V7 — Mission Control.
+**Settings** (`/settings`) — Tabs: Account (email, last sign-in), Scheduler, Agents, Data Retention.
 
 ---
 
@@ -164,7 +170,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - `GET/POST /api/agents/comms` — Agent-to-agent communication log
 - `GET/PUT /api/agents/[id]/soul` — Get/upsert agent SOUL (markdown)
 - `POST /api/agents/[id]/heartbeat` — Update `last_seen` timestamp
-- `GET/PUT /api/agents/[id]/workspace` — Read/write workspace config files (SOUL.md, IDENTITY.md, etc.)
+- `GET/PUT /api/agents/[id]/workspace` — Read/write workspace config files. Allowlist of filenames prevents arbitrary file access. Path traversal protection via resolve + normalize + startsWith
 
 ### Webhooks
 - `GET/POST /api/webhooks` — List/create webhooks (HMAC-SHA256 signing)
@@ -180,7 +186,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 ---
 
-## Database — 21+ Tables
+## Database — 18 Tables
 
 ### Core
 - **`agents`** — The 8 of you. slug, name, type, status, model, workspace_path, last_seen, capabilities
@@ -193,7 +199,6 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 ### Tasks
 - **`tasks`** — The centerpiece table. 6 statuses, 4 priorities, full-text search vector, soft delete via `archived_at`
 - **`task_comments`** — Threaded comments per task
-- **`task_subscriptions`** — Email subscriptions to task changes
 - **`projects`** — Multi-project organization. Ticket prefix + auto-increment counter
 - **`quality_reviews`** — QA sign-off records per task
 
@@ -203,16 +208,12 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - **`integrations`** — Third-party connections (config as JSON)
 
 ### Observability
-- **`agent_token_usage`** — Token tracking: agent, model, input/output tokens, cost_usd, timestamp
+- **`agent_token_usage`** — Token tracking schema (exists in DB; the Costs page reads from OpenClaw instead)
 - **`audit_log`** — Immutable audit trail. user_email, action, entity_type, changes (JSON diff)
 - **`alert_rules`** — Alert definitions with severity and conditions
 - **`alert_events`** — Alert event log. CRITICAL/HIGH/MEDIUM/INFORMATIONAL
-- **`notifications`** — In-app notifications for Delphi
 
-### Automation
-- **`scheduled_tasks`** — Cron job representations in Supabase (actual execution via OpenClaw)
-- **`workflows`** — Multi-step workflow definitions (reserved for future)
-- **`pipeline_runs`** — Workflow execution records
+### System
 - **`system_config`** — Key-value config store
 
 ---
@@ -227,21 +228,42 @@ src/
 │   │   ├── tasks/            Kanban board (6 columns, drag-drop)
 │   │   ├── agents/           Agent fleet grid
 │   │   ├── agents/[slug]/    Agent detail + workspace editor
-│   │   ├── agents/[slug]/soul  SOUL editor (legacy, standalone)
+│   │   │   └── _components/
+│   │   │       └── workspace-files.tsx  ← Preview/Code toggle, tabbed editor
 │   │   ├── office/           Pixel-art agent grid
-│   │   ├── costs/            Token/cost tracking
-│   │   ├── sessions/         Session monitoring (Gateway API)
+│   │   ├── costs/            Token/cost tracking (OpenClaw data)
+│   │   │   └── _components/
+│   │   │       ├── cost-chart.tsx
+│   │   │       └── cost-export-button.tsx
+│   │   ├── sessions/         Session monitoring (OpenClaw CLI)
+│   │   │   └── _components/
+│   │   │       └── sessions-table-client.tsx
 │   │   ├── memory/           Memory file browser (filesystem)
+│   │   │   └── _components/
+│   │   │       └── memory-browser.tsx  ← Split-panel, agent pills, preview/code
 │   │   ├── logs/             Unified log viewer
 │   │   ├── alerts/           Alert rules + events
 │   │   ├── webhooks/         Webhook CRUD + delivery history
-│   │   ├── cron/             Scheduled task management
+│   │   │   └── _components/
+│   │   │       └── create-webhook-dialog.tsx
+│   │   ├── cron/             Scheduled task management (OpenClaw CLI)
+│   │   │   └── _components/
+│   │   │       ├── cron-job-list.tsx   ← Agent filter pills, grouped layout
+│   │   │       └── cron-actions.tsx    ← Toggle + Run Now buttons
 │   │   ├── integrations/     Third-party connections
 │   │   ├── audit-log/        Immutable audit trail
 │   │   ├── gateway/          Gateway config panel
 │   │   └── settings/         App settings
 │   ├── (auth)/             ← Login page + server actions
-│   └── api/                ← Route handlers (see API section above)
+│   └── api/                ← Route handlers
+│       ├── agents/           Agent detail, workspace files, soul, heartbeat, comms
+│       ├── tasks/            Task CRUD + comments
+│       ├── webhooks/         Webhook CRUD + test + deliveries
+│       ├── integrations/     Integration CRUD
+│       ├── memory/           Filesystem memory access
+│       ├── logs/             journalctl output
+│       ├── search/           Full-text search (tasks + agents)
+│       └── status/           System health endpoint
 ├── components/
 │   ├── ui/                 ← shadcn/ui primitives (do not edit)
 │   ├── sidebar.tsx           Navigation (4 groups, 18 items)
@@ -269,14 +291,16 @@ src/
 
 ## Sidebar Navigation
 
-| Group | Items |
-|-------|-------|
-| **Core** | Dashboard · Agents · Tasks · Sessions · Office |
-| **Observe** | Logs · Tokens (costs) · Memory |
-| **Automate** | Cron · Webhooks · Alerts |
-| **Admin** | Audit Log · Gateways · Integrations · Settings |
+Desktop sidebar (56px collapsed width), 4 groups:
 
-Mobile: Dashboard, Tasks, Agents, Alerts, Office (5 quick links)
+| Group | Items | Icons |
+|-------|-------|-------|
+| *(core)* | Overview · Agents · Tasks · Sessions · Office | Dashboard · Bot · Kanban · Monitor · Building |
+| **Observe** | Logs · Tokens · Memory | Scroll · Dollar · Brain |
+| **Automate** | Cron · Webhooks · Alerts | Clock · Webhook · Bell |
+| **Admin** | Audit · Gateways · Integrations · Settings | Clipboard · Server · Plug · Settings |
+
+Mobile bottom nav: Dashboard, Tasks, Agents, Alerts, Office (5 quick links)
 
 ---
 
@@ -304,213 +328,10 @@ npx supabase gen types typescript --linked > src/lib/database.types.ts
 NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 ```
 
----
+### 2026-03-05 — Logs page: rewired to journalctl + full filtering
 
-## Changelog
-
-### 2026-03-05 — Workspace File Editors (Session 9)
-
-**What:** Built a tabbed workspace file editor into the agent detail page. Previously only SOUL.md was editable via a separate page. Now all 9+ workspace template files (SOUL, IDENTITY, USER, AGENTS, TOOLS, HEARTBEAT, BOOTSTRAP, BOOT, MEMORY, SUBAGENT-POLICY) are readable and writable directly from the agent detail page.
-
-**How it works:**
-- API route `GET/PUT /api/agents/[id]/workspace` — reads/writes files from agent's `workspace_path` in the filesystem
-- Allowlist of filenames prevents arbitrary file access. Path traversal protection via resolve + normalize + startsWith
-- SOUL.md writes also sync to Supabase `agent_souls` table for consistency
-- Tabbed editor with per-file icons, lazy loading, dirty tracking, save-per-tab
-
-**Files added:**
-- `src/app/api/agents/[id]/workspace/route.ts`
-- `src/app/(app)/agents/[slug]/_components/workspace-files.tsx`
-
-**Files changed:**
-- `src/app/(app)/agents/[slug]/page.tsx` — replaced "Edit SOUL" button with `<WorkspaceFiles>` component
-
-**Known issues:**
-- Old standalone soul editor at `/agents/[slug]/soul` still exists (can be removed; workspace editor supersedes it)
-- Agent `workspace_path` must be set in Supabase — if null, shows "No workspace files found"
-
-### 2026-03-05 — Section-Based Workspace Editor (Session 10)
-
-**What:** Rewrote the workspace file editor from a raw textarea into a structured section-based editor. Markdown files with `##` headings are parsed into collapsible accordion sections. Each section can be expanded to edit its heading and content independently. Files without `##` headings fall back to a plain textarea.
-
-**Features:**
-- Markdown parsing: splits on `## ` headings, preserves preamble (content before first `##`)
-- Collapsible accordion: each section shows heading + line count, click to expand/edit
-- Section operations: rename heading, edit content, add new section, delete section
-- Toggle all button to expand/collapse all sections at once
-- Preamble editing via a special "File Header" collapsible section
-- Lossless round-trip: `parseMd()` → edit → `assembleMd()` preserves original formatting
-- Raw textarea fallback for flat files (e.g. IDENTITY.md with no `##` sections)
-
-**Files changed:**
-- `src/app/(app)/agents/[slug]/_components/workspace-files.tsx` — complete rewrite (~370 lines)
-
-### 2026-03-05 — Sessions Page Fixed (Session 11)
-
-**What:** Sessions page was always showing "Gateway offline — showing fallback data" because it tried to fetch `http://localhost:18789/sessions` — but the OpenClaw gateway is a SPA dashboard with no REST API. Fixed to use `openclaw sessions --all-agents --json` via `execFile` which returns real session data.
-
-**New data shown:**
-- Session key (full `agent:slug:session` format)
-- Session kind (direct / group) with color-coded badges
-- Model name (shortened)
-- Context usage — progress bar showing tokens used / context window (color-coded: green < 50%, amber < 80%, red > 80%)
-- Last activity (relative time via date-fns)
-- Estimated cost (calculated from input/output tokens using model-costs.ts)
-- Multiple sessions per agent (Discord channels, cron runs, direct sessions)
-
-**Files changed:**
-- `src/app/(app)/sessions/page.tsx` — replaced broken gateway fetch with `execFile("openclaw", ["sessions", "--all-agents", "--json"])`
-- `src/app/(app)/sessions/_components/sessions-table-client.tsx` — new columns: kind, model, context usage bar
-- `.github/instructions/openclaw-integration.instructions.md` — corrected data source table (gateway has no REST API)
-
----
-
-### 2026-03-05 — Copilot Instructions Overhaul (Session 8)
-
-**What:** Rewrote CLAUDE.md and `.github/copilot-instructions.md` with comprehensive OpenClaw documentation. Created full `.github/` structure: 1 reviewer agent, 5 instruction files, 5 skills, 5 prompts. Fixed `memory-paths.ts` with real OpenClaw workspace paths.
-
-**Files added:**
-- `.github/agents/reviewer.agent.md` — read-only code reviewer
-- `.github/instructions/` — 5 files: api-routes, server-actions, react-components, openclaw-integration, migration-sql
-- `.github/skills/` — 5 dirs: supabase-crud, openclaw-agents, openclaw-cron, gateway-integration, memory-browser
-- `.github/prompts/` — 5 files: add-page, add-migration, deploy, debug-production, pre-commit-qa
-
-**Files changed:**
-- `CLAUDE.md` — full rewrite with OpenClaw docs
-- `.github/copilot-instructions.md` — full rewrite
-- `src/lib/memory-paths.ts` — 8 real agent paths
-
----
-
-### 2026-03-05 — Sidebar & Route Cleanup (Session 7b)
-
-**What:** Removed 5 sidebar tabs and 6 routes that were redundant or empty: chat, compliance, reports, workflows, standup. Condensed navigation to 4 groups / 18 items.
-
----
-
-### 2026-03-05 — V7 Mission Control Transformation (Session 7)
-
-**What:** Complete rewrite from generic agent orchestration placeholders to the real Hermes commercial fleet. 16 implementation phases:
-- 8 agents backed by OpenClaw
-- Dual data sources: Supabase + OpenClaw (sessions, cron, memory, gateway)
-- 18 sidebar nav items
-- Task Kanban centerpiece with drag-drop
-- Full API layer (tasks, webhooks, agents, integrations, search, status, memory, logs)
-- Sessions page reads from Gateway WebSocket
-- Memory page reads from filesystem
-- Gateway page reads from localhost:18789
-- Office pixel-art agent grid
-- Cost tracking dashboard with model-specific rates
-- Command palette (Cmd+K) with full-text search
-- Realtime refresh via Supabase subscriptions
-- Auth middleware + login page
-- 21+ database tables across 15 migrations
-
----
-
-### 2026-03-04 — V4–V6 Foundation
-
-**What:** Built the foundational features over multiple sessions: Office view, Chat system, Cost tracking, Gateway config, Sessions page, Memory browser, Logs viewer, Audit log. Added approval stages, quality reviews, token usage tracking, alert system, calibration workflow, weekly reports, client notes, settings page, search infrastructure.
-
----
-
-### 2026-03-04 — Initial V1–V3
-
-**What:** Created the project from scratch. Dashboard KPIs, pipeline advance, approvals actions, knowledge search, settings, invoice detail, cursor pagination, schema fixes, Zod schemas. Established the Supabase schema, migrations, seed data, RLS policies, and core routing structure.
-
----
-
-### 2026-03-05 — Fix: Webhook Creation Dialog
-
-**What:** The "New Webhook" button was rendered as permanently disabled with no form behind it. Created `CreateWebhookDialog` component with a full creation form (name, URL, secret, event selection via checkboxes). Wired it to the existing `createWebhook` server action.
-
-**Files added:**
-- `src/app/(app)/webhooks/_components/create-webhook-dialog.tsx`
-
-**Files changed:**
-- `src/app/(app)/webhooks/page.tsx` — swapped disabled `WebhookActions mode="create"` stub with `CreateWebhookDialog`
-
----
-
-### 2026-03-05 — Fix: Sessions Page + Workspace Editor
-
-**What:** Two fixes in one session.
-
-1. **Sessions page:** Was fetching `http://localhost:18789/sessions` but the OpenClaw gateway is a SPA with no REST API. Rewrote to use `openclaw sessions --all-agents --json` CLI via `execFile`. Also fixed systemd PATH issue by using absolute path to the openclaw binary (`/home/delphi/.nvm/versions/node/v22.22.0/bin/openclaw`). New table shows session key, kind (direct/group), model, context usage bar, last activity, estimated cost.
-
-2. **Workspace editor:** Replaced section-based markdown editor with GitHub-style Preview/Code toggle. Preview mode renders markdown via `react-markdown` with full prose styling. Code mode shows raw textarea for editing. Segmented control in the file header bar switches between modes. Added `@tailwindcss/typography` plugin for prose classes.
-
-**Files changed:**
-- `src/app/(app)/sessions/page.tsx` — rewrote data fetching from HTTP to CLI
-- `src/app/(app)/sessions/_components/sessions-table-client.tsx` — new columns (agent, kind, model, context bar, cost)
-- `src/app/(app)/agents/[slug]/_components/workspace-files.tsx` — complete rewrite with Preview/Code toggle
-- `src/app/globals.css` — added `@plugin "@tailwindcss/typography"`
-- `.github/instructions/openclaw-integration.instructions.md` — corrected data source table
-
-**Dependencies added:**
-- `@tailwindcss/typography` — for markdown prose rendering
-
-### 2026-03-05 — Cron page: rewired to OpenClaw CLI
-
-**Scope:** The cron/scheduler page was reading from Supabase `scheduled_tasks` (empty table). Rewired to fetch live data from `openclaw cron list --json` — now shows all 16 cron jobs with real state.
-
+**Scope:** The Logs page was reading from the empty `agent_logs` Supabase table — showing "No logs found". Rewired to read real system logs from journalctl for both `openclaw-gateway` (~12k entries) and `command-center` (~9k entries) services. Added comprehensive filtering: source, time range, level (error/warning/info), component multi-select dropdown, server-side grep, and instant client-side text filter. Clickable source badges and component labels in table rows act as quick filters.
 **Changes:**
-- `src/app/(app)/cron/page.tsx` — replaced Supabase query with `execFileAsync(OPENCLAW_BIN, ["cron", "list", "--json"])`. Displays agent, schedule expression, session target, last run time/duration, next run, consecutive errors. Added `force-dynamic` export.
-- `src/app/(app)/cron/actions.ts` — rewired `toggleCronJob` and `triggerCronJob` to use `openclaw cron edit` and `openclaw cron run` CLI commands instead of Supabase updates.
-- `src/app/(app)/cron/_components/cron-actions.tsx` — updated imports to match renamed action functions.
-
-### 2026-03-05 — Dropped 9 unused Supabase tables
-
-**Scope:** Full audit of all 27 Supabase tables vs application code. Found 9 tables never queried by any page, API route, or action. Dropped them to keep the schema clean — they can be recreated if needed.
-
-**Tables dropped:** `scheduled_tasks`, `task_subscriptions`, `workflows`, `pipeline_runs`, `standup_reports`, `notifications`, `chat_conversations`, `chat_messages`, `github_issues`
-
-**Tables retained (18):** `agents`, `agent_reports`, `agent_logs`, `agent_souls`, `agent_token_usage`, `agent_comms`, `heartbeats`, `tasks`, `task_comments`, `quality_reviews`, `projects`, `webhooks`, `webhook_deliveries`, `integrations`, `alert_rules`, `alert_events`, `audit_log`, `system_config`
-
-**Changes:**
-- `supabase/migrations/20260305100000_drop_unused_tables.sql` — new migration dropping 9 tables
-- `src/lib/database.types.ts` — regenerated from live schema
-- `src/lib/types.ts` — removed 9 dead type aliases (ChatConversation, ChatMessage, TaskSubscription, ScheduledTask, StandupReport, Workflow, PipelineRun, Notification, GithubIssue)
-
-### 2026-03-05 — Cron page: group jobs by agent
-
-**Scope:** Reorganised the Scheduler page to group cron jobs by agent instead of a flat list. Each agent gets a labelled section with a Bot icon, agent display name, and job count. Jobs within each group show schedule, target, last/next run — the redundant "Agent:" field was removed since the grouping makes it obvious. Agent groups are ordered: Hermes first, then workers (SDR, AE, AM), then specialists.
-**Changes:**
-- `src/app/(app)/cron/page.tsx` — added `AGENT_DISPLAY_NAMES` map, `AGENT_ORDER` sort list, `groupJobsByAgent()` helper. Replaced flat job list with grouped sections. Removed per-job "Agent:" label. Added `Bot` icon import.
-
-### 2026-03-05 — Memory browser: redesigned to match workspace-files UI
-
-**Scope:** Redesigned the Memory Browser page to match the split-panel layout used in the Workspace Files editor on agent detail pages.
-
-**Changes:**
-- `src/app/(app)/memory/page.tsx` — removed Card wrapper, simplified to header + MemoryBrowser component
-- `src/app/(app)/memory/_components/memory-browser.tsx` — complete rewrite:
-  - Agent selector changed from `<select>` dropdown to horizontal pill-style tabs with per-agent icons (Crown for Hermes, Megaphone for SDR, etc.)
-  - File browser changed from grid layout to unified split-panel (sidebar + content area) matching workspace-files
-  - Added Preview/Code toggle for markdown files (same segmented control style)
-  - Full `prose-invert` markdown rendering with matching typography classes
-  - File header bar with filename, agent label, line count
-  - Loading spinner state for content fetching
-  - Consistent zinc-800/900/950 palette, indigo-400 accents
-
-### 2026-03-05 — Costs page: rewired to OpenClaw data
-
-**Scope:** The Token & Cost Tracking page was reading from the empty `agent_token_usage` Supabase table — showing $0 everywhere. Rewired to read actual usage from two OpenClaw sources: (1) cron run JSONL files (`~/.openclaw/cron/runs/*.jsonl`) for historical per-run token usage, and (2) live session data from `openclaw sessions --all-agents --json` for active session tokens. Costs are calculated using model rates from `model-costs.ts`.
-**Changes:**
-- `src/app/(app)/costs/page.tsx` — complete rewrite. Reads cron run JSONL files + session CLI data. KPIs sum costs by time period from real timestamps. Agent breakdown merges both sources. Cost trend chart groups by date. Removed Supabase `agent_token_usage` queries and `RealtimeRefresh`.
-- `src/app/(app)/costs/_components/cost-export-button.tsx` — now receives data as props from the server component instead of querying Supabase client-side.
-
-### 2026-03-05 — Cron page: agent filter pills
-
-**Scope:** Added agent filter pills at the top of the Scheduler page for quick filtering. Extracted job rendering into a `CronJobList` client component with filter state.
-**Changes:**
-- `src/app/(app)/cron/_components/cron-job-list.tsx` — new client component. Horizontal pill buttons for "All" + each agent. Clicking a pill filters to show only that agent's jobs. Renders the same grouped layout (Bot icon, agent name, job cards).
-- `src/app/(app)/cron/page.tsx` — simplified server component. Delegates all rendering to `CronJobList` client component. Keeps data fetching and grouping logic server-side.
-
-### 2026-03-05 — Logs page: rewired to journalctl
-
-**Scope:** The Logs page was reading from the empty `agent_logs` Supabase table — showing "No logs found". Rewired to read real system logs from journalctl for both `openclaw-gateway` (~12k entries) and `command-center` (~9k entries) services.
-**Changes:**
-- `src/app/api/logs/journal/route.ts` — complete rewrite. Reads from both `openclaw-gateway` and `command-center` systemd units. Accepts query params: `source` (all/gateway/app), `since` (ISO timestamp), `lines` (limit), `grep` (text filter). Parses gateway log messages to extract `[component]` tags. Returns structured entries with id, timestamp, source, component, message, priority.
-- `src/app/(app)/logs/_components/log-viewer.tsx` — complete rewrite. Fetches from `/api/logs/journal` instead of Supabase `agent_logs`. Source filter pills (All/Gateway/App) replace agent dropdown. Columns: Timestamp, Source (badge), Component (parsed from log), Message. Live Tail polls every 5s. Refresh button. Removed Supabase client import and realtime subscription.
+- `src/app/api/logs/journal/route.ts` — complete rewrite. Reads from both `openclaw-gateway` and `command-center` systemd units. Accepts query params: `source` (all/gateway/app), `since` (ISO timestamp), `lines` (up to 1000), `grep` (text filter). Parses gateway log messages to extract `[component]` tags. Returns structured entries with id, timestamp, source, component, message, priority.
+- `src/app/(app)/logs/_components/log-viewer.tsx` — complete rewrite. Two-row filter bar: Row 1 has source pills, time range pills, server-side grep input, refresh, live tail. Row 2 has level pills (All/Errors/Warnings/Info), component multi-select dropdown (dynamically populated from results), instant client-side text filter, clear-filters button, entry counter. Table rows have clickable source badges and component labels that set filters on click. Level-colored dots on components. Footer shows active filter count.
 - `src/app/(app)/logs/page.tsx` — simplified. Removed agents query and searchParams. LogViewer no longer needs props.

@@ -179,11 +179,11 @@ openclaw status                                # Gateway health
 
 ---
 
-## HERMES Guide — Living Document
+## HERMES Guide — Current-State Document
 
-`docs/HERMES.md` is a single living document that explains the entire codebase to Hermes. After every implementation session, **append a changelog entry** to the `## Changelog` section at the bottom of `docs/HERMES.md` — do not create separate report files.
+`docs/HERMES.md` is a current-state reference that explains Mission Control to Hermes. Every section describes how things work **right now**. There is no changelog section.
 
-Each changelog entry must include: date, scope summary, files added/changed, and known issues.
+After every implementation session, **update the relevant sections** of `docs/HERMES.md` to reflect any changes — do not append entries to the bottom. If a page's data source changed, update the Data Sources table and the page description. If a new component was added, update the File Structure section. Keep every section accurate.
 
 ---
 
@@ -192,7 +192,7 @@ Each changelog entry must include: date, scope summary, files added/changed, and
 Before ending ANY implementation session, you MUST complete this checklist in order:
 
 1. **Build passes** — run `next build` and confirm zero errors
-2. **HERMES.md updated** — append changelog entry to `docs/HERMES.md`
+2. **HERMES.md updated** — update the relevant sections in `docs/HERMES.md` to reflect changes
 3. **Git commit** — `git add -A && git commit -m "<type>: <summary>"`
 4. **Git push** — `git push`
 5. **Service restart** (if code changed) — `systemctl --user restart command-center`

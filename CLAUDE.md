@@ -322,14 +322,16 @@ NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 
 ---
 
-## HERMES Guide — Living Document
+## HERMES Guide — Current-State Document
 
-`docs/HERMES.md` is a single living document that explains the entire codebase to Hermes. After every implementation session, **append a changelog entry** to the `## Changelog` section at the bottom — do not create separate report files.
+`docs/HERMES.md` is a current-state reference that explains Mission Control to Hermes. Every section describes how things work **right now**. There is no changelog section.
+
+After every implementation session, **update the relevant sections** of `docs/HERMES.md` to reflect any changes — do not append entries to the bottom. If a page's data source changed, update the Data Sources table and the page description. If a new component was added, update the File Structure section. Keep every section accurate.
 
 ## Session Completion Protocol — MANDATORY
 
 1. Build passes — `next build` zero errors
-2. HERMES.md updated — append changelog entry
+2. HERMES.md updated — update the relevant sections to reflect changes
 3. Git commit + push
 4. Service restart if code changed — `systemctl --user restart command-center`
 
