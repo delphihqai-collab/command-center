@@ -20,31 +20,40 @@ export type Integration = Database["public"]["Tables"]["integrations"]["Row"];
 export type SystemConfig = Database["public"]["Tables"]["system_config"]["Row"];
 export type PipelineLead = Database["public"]["Tables"]["pipeline_leads"]["Row"];
 
+// ── V8 types ──────────────────────────────────────────────────────────
+export type OutreachSequence = Database["public"]["Tables"]["outreach_sequences"]["Row"];
+export type OutreachTemplate = Database["public"]["Tables"]["outreach_templates"]["Row"];
+export type DailyTarget = Database["public"]["Tables"]["daily_targets"]["Row"];
+export type ReviewQueueItem = Database["public"]["Tables"]["review_queue"]["Row"];
+
 // ── Shared utilities ──────────────────────────────────────────────────
 export type ServerActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
 export const PIPELINE_STAGES = [
-  "new_lead", "sdr_qualification", "qualified", "discovery",
-  "proposal", "negotiation", "closed_won", "closed_lost", "disqualified",
+  "discovery", "enrichment", "human_review", "outreach", "engaged",
+  "meeting_booked", "meeting_completed", "proposal_sent",
+  "won", "lost", "disqualified",
 ] as const;
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];
 
 export const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
-  new_lead: "New Lead",
-  sdr_qualification: "SDR Qualification",
-  qualified: "Qualified (SQL)",
   discovery: "Discovery",
-  proposal: "Proposal",
-  negotiation: "Negotiation",
-  closed_won: "Closed Won",
-  closed_lost: "Closed Lost",
+  enrichment: "Enrichment",
+  human_review: "Human Review",
+  outreach: "Outreach",
+  engaged: "Engaged",
+  meeting_booked: "Meeting Booked",
+  meeting_completed: "Meeting Completed",
+  proposal_sent: "Proposal Sent",
+  won: "Won",
+  lost: "Lost",
   disqualified: "Disqualified",
 };
 
-/** Stages that agents can move leads to. Closed stages require human action. */
+/** Stages that agents can move leads to. Terminal stages require human action. */
 export const AGENT_ALLOWED_STAGES: readonly PipelineStage[] = [
-  "new_lead", "sdr_qualification", "qualified", "discovery",
-  "proposal", "negotiation",
+  "discovery", "enrichment", "human_review", "outreach", "engaged",
+  "meeting_booked", "meeting_completed", "proposal_sent",
 ] as const;

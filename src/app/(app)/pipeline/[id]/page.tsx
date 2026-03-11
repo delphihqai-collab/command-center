@@ -9,6 +9,9 @@ import { format, formatDistanceToNow } from "date-fns";
 import { FileDown } from "lucide-react";
 import { NotifyHermesButton } from "../_components/notify-hermes-button";
 import { StageActions } from "../_components/stage-actions";
+import { EnrichmentCard } from "../_components/enrichment-card";
+import { SequenceTimeline } from "../_components/sequence-timeline";
+import { LeadReviewCard } from "../_components/lead-review-card";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -18,11 +21,24 @@ export default async function PipelineDetailPage({ params }: Props) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: lead } = await supabase
-    .from("pipeline_leads")
-    .select("*, assigned_agent:assigned_agent_id(id, name, slug)")
-    .eq("id", id)
-    .single();
+  const [{ data: lead }, { data: sequences }, { data: reviewItem }] = await Promise.all([
+    supabase
+      .from("pipeline_leads")
+      .select("*, assigned_agent:assigned_agent_id(id, name, slug)")
+      .eq("id", id)
+      .single(),
+    supabase
+      .from("outreach_sequences")
+      .select("*")
+      .eq("lead_id", id)
+      .order("step_number", { ascending: true }),
+    supabase
+      .from("review_queue")
+      .select("id")
+      .eq("lead_id", id)
+      .eq("status", "pending")
+      .maybeSingle(),
+  ]);
 
   if (!lead) notFound();
 
@@ -46,6 +62,11 @@ export default async function PipelineDetailPage({ params }: Props) {
         </p>
       </div>
 
+      {/* Review Card (shown if in human_review with pending review) */}
+      {lead.stage === "human_review" && (
+        <LeadReviewCard leadId={lead.id} reviewId={reviewItem?.id ?? null} />
+      )}
+
       {/* Actions */}
       <div className="flex gap-2">
         <NotifyHermesButton type="pipeline" id={lead.id} />
@@ -60,6 +81,63 @@ export default async function PipelineDetailPage({ params }: Props) {
         </a>
         <StageActions leadId={lead.id} currentStage={lead.stage as PipelineStage} />
       </div>
+
+      {/* Scores */}
+      {(lead.icp_score != null || lead.intent_score != null) && (
+        <div className="flex gap-4">
+          {lead.icp_score != null && (
+            <Card className="flex-1 border-zinc-800 bg-zinc-900">
+              <CardContent className="p-4">
+                <p className="text-xs text-zinc-500">ICP Score</p>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-indigo-400">{lead.icp_score}</span>
+                  <span className="text-xs text-zinc-600">/ 100</span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-zinc-800">
+                  <div className="h-full rounded-full bg-indigo-500" style={{ width: `${lead.icp_score}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {lead.intent_score != null && (
+            <Card className="flex-1 border-zinc-800 bg-zinc-900">
+              <CardContent className="p-4">
+                <p className="text-xs text-zinc-500">Intent Score</p>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-amber-400">{lead.intent_score}</span>
+                  <span className="text-xs text-zinc-600">/ 100</span>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-zinc-800">
+                  <div className="h-full rounded-full bg-amber-500" style={{ width: `${lead.intent_score}%` }} />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Enrichment Card */}
+      <EnrichmentCard
+        companySize={lead.company_size}
+        companyIndustry={lead.company_industry}
+        companyRevenue={lead.company_revenue}
+        companyLocation={lead.company_location}
+        companyTechStack={lead.company_tech_stack}
+        companyWebsite={lead.company_website}
+        linkedinUrl={lead.linkedin_url}
+      />
+
+      {/* Trigger Event */}
+      {lead.trigger_event && (
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-zinc-400">Trigger Event</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-zinc-300">{lead.trigger_event}</p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Info Card */}
       <Card className="border-zinc-800 bg-zinc-900">
@@ -98,6 +176,18 @@ export default async function PipelineDetailPage({ params }: Props) {
                 <p className="text-sm text-zinc-50">{lead.confidence}%</p>
               </div>
             )}
+            {lead.channel && (
+              <div>
+                <p className="text-xs text-zinc-500">Channel</p>
+                <p className="text-sm text-zinc-50">{lead.channel}</p>
+              </div>
+            )}
+            {lead.touch_count != null && lead.touch_count > 0 && (
+              <div>
+                <p className="text-xs text-zinc-500">Touches</p>
+                <p className="text-sm text-zinc-50">{lead.touch_count}</p>
+              </div>
+            )}
             <div>
               <p className="text-xs text-zinc-500">Created</p>
               <p className="text-sm text-zinc-400">
@@ -117,6 +207,39 @@ export default async function PipelineDetailPage({ params }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Meeting info */}
+      {lead.meeting_scheduled_at && (
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-zinc-400">Meeting</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-blue-400">
+              {format(new Date(lead.meeting_scheduled_at), "EEEE, dd MMM yyyy 'at' HH:mm")}
+            </p>
+            {lead.meeting_notes && (
+              <pre className="mt-2 whitespace-pre-wrap rounded-md bg-zinc-950 p-3 font-mono text-xs text-zinc-300">
+                {lead.meeting_notes}
+              </pre>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Outreach Timeline */}
+      <SequenceTimeline steps={(sequences ?? []).map((s) => ({
+        id: s.id,
+        step_number: s.step_number,
+        channel: s.channel,
+        status: s.status,
+        sent_at: s.sent_at,
+        opened_at: s.opened_at,
+        clicked_at: s.clicked_at,
+        replied_at: s.replied_at,
+        reply_sentiment: s.reply_sentiment,
+        message_preview: s.message_preview,
+      }))} />
 
       {/* SDR Brief */}
       {lead.sdr_brief && (

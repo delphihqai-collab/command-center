@@ -12,7 +12,7 @@ export async function moveLead(
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { success: false, error: "Unauthorized" };
 
-  const closedAt = ["closed_won", "closed_lost", "disqualified"].includes(newStage)
+  const closedAt = ["won", "lost", "disqualified"].includes(newStage)
     ? new Date().toISOString()
     : null;
 
@@ -45,7 +45,7 @@ export async function createLead(input: {
       contact_email: input.contact_email ?? null,
       contact_role: input.contact_role ?? null,
       source: input.source ?? "manual",
-      stage: "new_lead",
+      stage: "discovery",
     })
     .select("id")
     .single();
@@ -53,6 +53,31 @@ export async function createLead(input: {
   if (error) return { success: false, error: error.message };
   revalidatePath("/pipeline");
   return { success: true, data: { id: data.id } };
+}
+
+export async function reviewLead(
+  leadId: string,
+  decision: "approved" | "rejected",
+  notes?: string
+): Promise<ServerActionResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("pipeline_leads")
+    .update({
+      review_decision: decision,
+      reviewed_at: new Date().toISOString(),
+      stage: decision === "approved" ? "outreach" : "disqualified",
+      closed_at: decision === "rejected" ? new Date().toISOString() : null,
+    })
+    .eq("id", leadId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/pipeline");
+  revalidatePath("/war-room");
+  return { success: true };
 }
 
 export async function notifyHermes(

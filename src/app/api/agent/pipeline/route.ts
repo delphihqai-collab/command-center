@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       contact_email: body.contact_email ?? null,
       contact_role: body.contact_role ?? null,
       source: body.source ?? "inbound",
-      stage: body.stage ?? "new_lead",
+      stage: body.stage ?? "discovery",
       assigned_agent_id: body.assigned_agent_id ?? null,
       deal_value_eur: body.deal_value_eur ?? null,
       confidence: body.confidence ?? null,

@@ -56,14 +56,16 @@ const statusColors: Record<string, string> = {
   review: "bg-purple-500/15 text-purple-400 border-purple-500/20",
 
   // Pipeline stages
-  new_lead: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
-  sdr_qualification: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-  qualified: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-  discovery: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
-  proposal: "bg-purple-500/15 text-purple-400 border-purple-500/20",
-  negotiation: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-  closed_won: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
-  closed_lost: "bg-red-500/15 text-red-400 border-red-500/20",
+  discovery: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
+  enrichment: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+  human_review: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  outreach: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
+  engaged: "bg-cyan-500/15 text-cyan-400 border-cyan-500/20",
+  meeting_booked: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  meeting_completed: "bg-teal-500/15 text-teal-400 border-teal-500/20",
+  proposal_sent: "bg-orange-500/15 text-orange-400 border-orange-500/20",
+  won: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+  lost: "bg-red-500/15 text-red-400 border-red-500/20",
   disqualified: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
 };
 

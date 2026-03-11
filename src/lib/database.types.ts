@@ -1,34 +1,4 @@
 Connecting to db.bplgfzymyinggwebvcqv.supabase.co 5432
-v0.96.1: Pulling from supabase/postgres-meta
-84a2afebaf4d: Already exists
-05988a666f72: Already exists
-a0655704972f: Already exists
-2664cf4489e5: Already exists
-c2b9c0e674a1: Already exists
-d1049e5e90ef: Pulling fs layer
-7c6ce32c8ea1: Pulling fs layer
-8bef736db8d5: Pulling fs layer
-b74ec4036855: Pulling fs layer
-4b9ad70f79cd: Pulling fs layer
-b74ec4036855: Waiting
-4b9ad70f79cd: Waiting
-7c6ce32c8ea1: Verifying Checksum
-7c6ce32c8ea1: Download complete
-d1049e5e90ef: Verifying Checksum
-d1049e5e90ef: Download complete
-d1049e5e90ef: Pull complete
-7c6ce32c8ea1: Pull complete
-b74ec4036855: Verifying Checksum
-b74ec4036855: Download complete
-8bef736db8d5: Verifying Checksum
-8bef736db8d5: Download complete
-4b9ad70f79cd: Verifying Checksum
-4b9ad70f79cd: Download complete
-8bef736db8d5: Pull complete
-b74ec4036855: Pull complete
-4b9ad70f79cd: Pull complete
-Digest: sha256:2559d20aaa50f2eb86a6cb2e5af4e847e87139673bc214b4655c126d96c160b2
-Status: Downloaded newer image for public.ecr.aws/supabase/postgres-meta:v0.96.1
 export type Json =
   | string
   | number
@@ -491,6 +461,54 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_targets: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          leads_actual: number | null
+          leads_target: number | null
+          meetings_actual: number | null
+          meetings_target: number | null
+          notes: string | null
+          outreach_actual: number | null
+          outreach_target: number | null
+          revenue_actual: number | null
+          revenue_target: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          leads_actual?: number | null
+          leads_target?: number | null
+          meetings_actual?: number | null
+          meetings_target?: number | null
+          notes?: string | null
+          outreach_actual?: number | null
+          outreach_target?: number | null
+          revenue_actual?: number | null
+          revenue_target?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          leads_actual?: number | null
+          leads_target?: number | null
+          meetings_actual?: number | null
+          meetings_target?: number | null
+          notes?: string | null
+          outreach_actual?: number | null
+          outreach_target?: number | null
+          revenue_actual?: number | null
+          revenue_target?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fleet_experiments: {
         Row: {
           agent_id: string | null
@@ -607,11 +625,132 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_sequences: {
+        Row: {
+          channel: string
+          clicked_at: string | null
+          created_at: string
+          id: string
+          lead_id: string
+          message_preview: string | null
+          opened_at: string | null
+          replied_at: string | null
+          reply_sentiment: string | null
+          sent_at: string | null
+          status: string
+          step_number: number
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          id?: string
+          lead_id: string
+          message_preview?: string | null
+          opened_at?: string | null
+          replied_at?: string | null
+          reply_sentiment?: string | null
+          sent_at?: string | null
+          status?: string
+          step_number: number
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string
+          message_preview?: string | null
+          opened_at?: string | null
+          replied_at?: string | null
+          reply_sentiment?: string | null
+          sent_at?: string | null
+          status?: string
+          step_number?: number
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_sequences_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_sequences_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "outreach_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      outreach_templates: {
+        Row: {
+          active: boolean | null
+          avg_open_rate: number | null
+          avg_reply_rate: number | null
+          body: string
+          category: string
+          channel: string
+          created_at: string
+          id: string
+          name: string
+          subject: string | null
+          times_used: number | null
+          updated_at: string
+          variables: string[] | null
+        }
+        Insert: {
+          active?: boolean | null
+          avg_open_rate?: number | null
+          avg_reply_rate?: number | null
+          body: string
+          category?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          name: string
+          subject?: string | null
+          times_used?: number | null
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Update: {
+          active?: boolean | null
+          avg_open_rate?: number | null
+          avg_reply_rate?: number | null
+          body?: string
+          category?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          name?: string
+          subject?: string | null
+          times_used?: number | null
+          updated_at?: string
+          variables?: string[] | null
+        }
+        Relationships: []
+      }
       pipeline_leads: {
         Row: {
           assigned_agent_id: string | null
+          channel: string | null
           closed_at: string | null
+          company_industry: string | null
+          company_location: string | null
           company_name: string
+          company_revenue: string | null
+          company_size: string | null
+          company_tech_stack: string[] | null
+          company_website: string | null
           confidence: number | null
           contact_email: string | null
           contact_name: string
@@ -619,19 +758,45 @@ export type Database = {
           created_at: string
           deal_value_eur: number | null
           discovery_notes: string | null
+          disqualify_reason: string | null
+          email_clicks: number | null
+          email_opens: number | null
+          icp_score: number | null
           id: string
+          intent_score: number | null
+          last_touch_at: string | null
+          linkedin_url: string | null
           lost_reason: string | null
+          meeting_notes: string | null
+          meeting_scheduled_at: string | null
           metadata: Json
+          next_touch_at: string | null
+          outreach_status: string | null
           proposal_url: string | null
+          re_engage_after: string | null
+          reply_sentiment: string | null
+          review_decision: string | null
+          reviewed_at: string | null
           sdr_brief: string | null
+          sequence_started_at: string | null
+          sequence_step: number | null
           source: string
           stage: string
+          touch_count: number | null
+          trigger_event: string | null
           updated_at: string
         }
         Insert: {
           assigned_agent_id?: string | null
+          channel?: string | null
           closed_at?: string | null
+          company_industry?: string | null
+          company_location?: string | null
           company_name: string
+          company_revenue?: string | null
+          company_size?: string | null
+          company_tech_stack?: string[] | null
+          company_website?: string | null
           confidence?: number | null
           contact_email?: string | null
           contact_name: string
@@ -639,19 +804,45 @@ export type Database = {
           created_at?: string
           deal_value_eur?: number | null
           discovery_notes?: string | null
+          disqualify_reason?: string | null
+          email_clicks?: number | null
+          email_opens?: number | null
+          icp_score?: number | null
           id?: string
+          intent_score?: number | null
+          last_touch_at?: string | null
+          linkedin_url?: string | null
           lost_reason?: string | null
+          meeting_notes?: string | null
+          meeting_scheduled_at?: string | null
           metadata?: Json
+          next_touch_at?: string | null
+          outreach_status?: string | null
           proposal_url?: string | null
+          re_engage_after?: string | null
+          reply_sentiment?: string | null
+          review_decision?: string | null
+          reviewed_at?: string | null
           sdr_brief?: string | null
+          sequence_started_at?: string | null
+          sequence_step?: number | null
           source?: string
           stage?: string
+          touch_count?: number | null
+          trigger_event?: string | null
           updated_at?: string
         }
         Update: {
           assigned_agent_id?: string | null
+          channel?: string | null
           closed_at?: string | null
+          company_industry?: string | null
+          company_location?: string | null
           company_name?: string
+          company_revenue?: string | null
+          company_size?: string | null
+          company_tech_stack?: string[] | null
+          company_website?: string | null
           confidence?: number | null
           contact_email?: string | null
           contact_name?: string
@@ -659,13 +850,32 @@ export type Database = {
           created_at?: string
           deal_value_eur?: number | null
           discovery_notes?: string | null
+          disqualify_reason?: string | null
+          email_clicks?: number | null
+          email_opens?: number | null
+          icp_score?: number | null
           id?: string
+          intent_score?: number | null
+          last_touch_at?: string | null
+          linkedin_url?: string | null
           lost_reason?: string | null
+          meeting_notes?: string | null
+          meeting_scheduled_at?: string | null
           metadata?: Json
+          next_touch_at?: string | null
+          outreach_status?: string | null
           proposal_url?: string | null
+          re_engage_after?: string | null
+          reply_sentiment?: string | null
+          review_decision?: string | null
+          reviewed_at?: string | null
           sdr_brief?: string | null
+          sequence_started_at?: string | null
+          sequence_step?: number | null
           source?: string
           stage?: string
+          touch_count?: number | null
+          trigger_event?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -745,6 +955,63 @@ export type Database = {
             columns: ["task_id"]
             isOneToOne: false
             referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      review_queue: {
+        Row: {
+          context: string | null
+          created_at: string
+          decided_at: string | null
+          decision: string | null
+          decision_notes: string | null
+          id: string
+          lead_id: string
+          requested_by: string | null
+          review_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decision?: string | null
+          decision_notes?: string | null
+          id?: string
+          lead_id: string
+          requested_by?: string | null
+          review_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decision?: string | null
+          decision_notes?: string | null
+          id?: string
+          lead_id?: string
+          requested_by?: string | null
+          review_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_queue_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_queue_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "agents"
             referencedColumns: ["id"]
           },
         ]
@@ -1015,6 +1282,7 @@ export type Database = {
       }
       war_rooms: {
         Row: {
+          config: Json | null
           created_at: string
           id: string
           lead_id: string | null
@@ -1023,9 +1291,11 @@ export type Database = {
           priority: string
           resolved_at: string | null
           status: string
+          type: string | null
           updated_at: string
         }
         Insert: {
+          config?: Json | null
           created_at?: string
           id?: string
           lead_id?: string | null
@@ -1034,9 +1304,11 @@ export type Database = {
           priority?: string
           resolved_at?: string | null
           status?: string
+          type?: string | null
           updated_at?: string
         }
         Update: {
+          config?: Json | null
           created_at?: string
           id?: string
           lead_id?: string | null
@@ -1045,6 +1317,7 @@ export type Database = {
           priority?: string
           resolved_at?: string | null
           status?: string
+          type?: string | null
           updated_at?: string
         }
         Relationships: [

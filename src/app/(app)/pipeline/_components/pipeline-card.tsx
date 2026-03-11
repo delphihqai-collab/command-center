@@ -19,6 +19,44 @@ export function PipelineCard({ lead }: Props) {
       {lead.contact_role && (
         <p className="text-xs text-zinc-500">{lead.contact_role}</p>
       )}
+
+      {/* Stage-conditional info */}
+      {lead.stage === "enrichment" && lead.icp_score != null && (
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className="rounded bg-indigo-950 px-1.5 py-0.5 text-[10px] font-medium text-indigo-400">
+            ICP {lead.icp_score}
+          </span>
+          {lead.company_industry && (
+            <span className="text-[10px] text-zinc-500">{lead.company_industry}</span>
+          )}
+        </div>
+      )}
+      {lead.stage === "outreach" && lead.sequence_step != null && (
+        <div className="mt-1.5">
+          <span className="rounded bg-indigo-950 px-1.5 py-0.5 text-[10px] font-medium text-indigo-400">
+            Step {lead.sequence_step} · {lead.touch_count ?? 0} touches
+          </span>
+        </div>
+      )}
+      {lead.stage === "engaged" && lead.reply_sentiment && (
+        <div className="mt-1.5">
+          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${
+            lead.reply_sentiment === "positive" ? "bg-emerald-950 text-emerald-400" :
+            lead.reply_sentiment === "negative" ? "bg-red-950 text-red-400" :
+            "bg-zinc-800 text-zinc-400"
+          }`}>
+            {lead.reply_sentiment} reply
+          </span>
+        </div>
+      )}
+      {lead.stage === "meeting_booked" && lead.meeting_scheduled_at && (
+        <div className="mt-1.5">
+          <span className="rounded bg-blue-950 px-1.5 py-0.5 text-[10px] font-medium text-blue-400">
+            {new Date(lead.meeting_scheduled_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </span>
+        </div>
+      )}
+
       <div className="mt-2 flex items-center gap-2">
         {lead.deal_value_eur && (
           <span className="rounded bg-emerald-950 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
+  Shield,
   Bot,
   Bell,
   DollarSign,
@@ -20,7 +20,7 @@ import {
   Plug,
   GitBranchPlus,
   Network,
-  Shield,
+  FileText,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 
@@ -37,27 +37,28 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
+    label: "OPERATE",
     items: [
-      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-      { href: "/agents", label: "Agents", icon: Bot },
-      { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
-      { href: "/sessions", label: "Sessions", icon: Monitor },
-      { href: "/team-analysis", label: "Team Analysis", icon: Network },
       { href: "/war-room", label: "War Room", icon: Shield },
+      { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
+      { href: "/agents", label: "Agents", icon: Bot },
     ],
   },
   {
-    label: "OBSERVE",
+    label: "MONITOR",
     items: [
-      { href: "/logs", label: "Logs", icon: ScrollText },
+      { href: "/office", label: "Office", icon: Network },
+      { href: "/sessions", label: "Sessions", icon: Monitor },
       { href: "/costs", label: "Tokens", icon: DollarSign },
-      { href: "/memory", label: "Memory", icon: Brain },
+      { href: "/logs", label: "Logs", icon: ScrollText },
     ],
   },
   {
-    label: "AUTOMATE",
+    label: "CONFIGURE",
     items: [
       { href: "/cron", label: "Cron", icon: Clock },
+      { href: "/templates", label: "Templates", icon: FileText },
+      { href: "/memory", label: "Memory", icon: Brain },
       { href: "/webhooks", label: "Webhooks", icon: Webhook },
       { href: "/alerts", label: "Alerts", icon: Bell },
     ],
@@ -74,7 +75,7 @@ const navGroups: NavGroup[] = [
 ];
 
 const mobileNavItems = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/war-room", label: "War Room", icon: Shield },
   { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/alerts", label: "Alerts", icon: Bell },
@@ -89,7 +90,7 @@ export function Sidebar() {
       {/* Desktop sidebar */}
       <aside className="hidden h-screen w-56 flex-col border-r border-zinc-800 bg-zinc-950 md:flex">
         <div className="flex h-14 items-center border-b border-zinc-800 px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/war-room" className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600">
               <span className="text-xs font-bold text-white">MC</span>
             </div>

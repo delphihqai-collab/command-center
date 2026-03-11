@@ -19,12 +19,12 @@ export default async function PipelinePage() {
   const agents = agentsRes.data ?? [];
 
   const activeStages: PipelineStage[] = [
-    "new_lead", "sdr_qualification", "qualified", "discovery",
-    "proposal", "negotiation",
+    "discovery", "enrichment", "human_review", "outreach",
+    "engaged", "meeting_booked",
   ];
 
   const closedLeads = leads.filter((l) =>
-    ["closed_won", "closed_lost", "disqualified"].includes(l.stage)
+    ["won", "lost", "disqualified"].includes(l.stage)
   );
 
   const columns = Object.fromEntries(
@@ -35,7 +35,7 @@ export default async function PipelinePage() {
   );
 
   const totalValue = leads
-    .filter((l) => !["closed_lost", "disqualified"].includes(l.stage))
+    .filter((l) => !["lost", "disqualified"].includes(l.stage))
     .reduce((sum, l) => sum + (l.deal_value_eur ? Number(l.deal_value_eur) : 0), 0);
 
   return (
@@ -54,6 +54,23 @@ export default async function PipelinePage() {
         stageLabels={PIPELINE_STAGE_LABELS}
         agents={agents}
       />
+
+      {/* Terminal stage summary */}
+      {closedLeads.length > 0 && (
+        <div className="flex gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+          {(["meeting_completed", "proposal_sent", "won", "lost", "disqualified"] as const).map((stage) => {
+            const count = leads.filter((l) => l.stage === stage).length;
+            if (count === 0) return null;
+            return (
+              <div key={stage} className="flex items-center gap-2">
+                <span className="text-xs text-zinc-500">{PIPELINE_STAGE_LABELS[stage]}:</span>
+                <span className="text-xs font-medium text-zinc-300">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <RealtimeRefresh table="pipeline_leads" />
     </div>
   );
