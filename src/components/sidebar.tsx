@@ -20,6 +20,8 @@ import {
   Clock,
   Plug,
   GitBranchPlus,
+  Network,
+  Shield,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 
@@ -42,6 +44,8 @@ const navGroups: NavGroup[] = [
       { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
       { href: "/sessions", label: "Sessions", icon: Monitor },
       { href: "/office", label: "Office", icon: Building2 },
+      { href: "/team-analysis", label: "Team Analysis", icon: Network },
+      { href: "/war-room", label: "War Room", icon: Shield },
     ],
   },
   {

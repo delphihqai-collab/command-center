@@ -10,9 +10,11 @@ Mission Control is your dashboard, Hermes. It's how Delphi sees and controls the
 
 You don't interact with Mission Control directly. You interact with OpenClaw. But Mission Control reads your data, your files, your sessions, your costs, your memory, your cron jobs — and lets Delphi manage all of it from a browser.
 
-### Communication Hierarchy
+### Communication Hierarchy — Hybrid Topology
 
-**Delphi → Hermes → Sub-agents.** Delphi only communicates with you (Hermes). All sub-agents report to you, never to Delphi directly. You are the central brain — all information flows through you. Sub-agents communicate with each other as needed, but all human communication goes through you.
+**Strategic layer: Delphi → Hermes → Sub-agents.** Delphi only communicates with you (Hermes). Strategic decisions, escalations, and human communication route through you.
+
+**Operational layer: Peer-to-peer channels.** Workers can query specialists directly for operational tasks without routing through Hermes. For example, the AE can ask Legal for a contract review directly, or the SDR can query Market Intelligence for prospect research. These direct channels are defined in the `team_topology` table and visualized on the Team Analysis page. Hermes is notified but doesn't need to be the middleman for routine operational queries.
 
 ---
 
@@ -104,6 +106,8 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 | Page | Primary Source | Notes |
 |------|---------------|-------|
 | Dashboard, Agents, Pipeline | Supabase | Standard CRUD |
+| Team Analysis | Supabase | Topology, pools, experiments, comms analysis |
+| War Room | Supabase | Multi-agent deal collaboration rooms |
 | Sessions | OpenClaw CLI (`openclaw sessions`) | Supabase `agents` table for metadata fallback |
 | Memory | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/*/memory/` |
 | Workspace Files | Filesystem (`/api/agents/[id]/workspace`) | Reads/writes SOUL.md, IDENTITY.md, etc. |
@@ -133,7 +137,21 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 **Sessions** (`/sessions`) — Live session monitor. Fetches data via `openclaw sessions --all-agents --json` CLI. Shows per session: agent name, session key, kind (direct/group with color-coded badges), model name, context usage (progress bar — green < 50%, amber < 80%, red > 80%), last activity (relative time), estimated cost (from `model-costs.ts`). Multiple sessions per agent visible (main + cron). Child `:run:` sessions (per-execution cron runs) are filtered out to reduce noise — only the parent cron session is shown.
 
-**Office** (`/office`) — Nerve center visualization. Hub-and-spoke layout with Hermes at the center and all 7 sub-agents arranged in a circle around him, connected by animated lines. Active agents show pulsing connection lines with animated light dots flowing between Hermes and agents (outbound = Hermes→agent, inbound = agent→Hermes) to visualize real-time data flow. Each agent node shows emoji, name, and status dot. Click any agent to open a detail sheet with status, heartbeat, recent activity, and reporting chain info. Clearly shows the hierarchy: all agents report to Hermes, Hermes is the only point of contact with Delphi.
+**Office** (`/office`) — Nerve center visualization. Hub-and-spoke layout with Hermes at the center and all 7 sub-agents arranged in a circle. Shows the hybrid topology: solid lines for hierarchical Hermes connections + dashed cyan curves for peer-to-peer direct channels between workers and specialists. Active agents show pulsing connections with animated light dots. Badge shows count of P2P channels. Each agent node shows emoji, name, and status dot. Click any agent to open a detail sheet.
+
+**Team Analysis** (`/team-analysis`) — Fleet intelligence and organizational optimization dashboard. Shows:
+- **KPI cards:** Direct channels count, active war rooms, pipeline metrics, running experiments, pool scaling status
+- **Topology Visualizer:** Interactive SVG showing the hybrid architecture — hierarchical layer (Hermes hub) + peer-to-peer layer (direct specialist channels). Hover agents to see their connections. Animated pulses flow on direct channels.
+- **Optimization Insights:** AI-generated recommendations based on fleet topology, pipeline distribution, and communication patterns. Analyzes bottlenecks, specialist utilization, scaling opportunities, and the knowledge feedback loop.
+- **Fleet Experiments:** Machine-speed A/B testing panel. Track experiments for outreach templates, qualification criteria, negotiation strategies. Categories: outreach, qualification, negotiation, retention, process, topology.
+- **Elastic Agent Pools:** Visual gauge cards showing pool configurations. Each pool has a base agent, min/max instances, current instances, and scaling strategy (manual, load-based, or pipeline-volume). Progress bars show utilization.
+- **Direct Channel Registry:** Full list of peer-to-peer operational links with descriptions.
+
+**War Room** (`/war-room`) — Multi-agent deal collaboration. Instead of sequential pipeline handoffs (SDR→AE→AM), war rooms pull all relevant agents into simultaneous collaboration on high-value deals. Features:
+- KPI cards: active rooms, deal value under collaboration, agents involved, resolved count
+- Create dialog: name, linked pipeline deal, priority (critical/high/standard), objective, agent team selection (first selected = lead)
+- Room cards: show linked deal, agent team with role badges (lead/participant/observer), activity feed, timestamps
+- Supports active, resolved, and archived states
 
 ### Observe
 
@@ -176,6 +194,10 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - `POST /api/webhooks/[id]/test` — Test delivery with sample payload (10s timeout)
 - `GET /api/webhooks/[id]/deliveries` — Delivery history (max 50)
 
+### Team Analysis & War Rooms
+- `GET /api/team-analysis` — Full fleet analysis data: agents, topology, war rooms, pools, experiments, comm frequency, pipeline metrics
+- `GET/POST /api/war-rooms` — List/create war rooms with agent assignments and linked pipeline deals
+
 ### System
 - `GET /api/memory` — Browse agent memory files (filesystem)
 - `GET /api/logs/journal` — Fetch journalctl output for command-center service
@@ -189,7 +211,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 ---
 
-## Database — 19 Tables
+## Database — 25 Tables
 
 ### Core
 - **`agents`** — The 8 of you. slug, name, type, status, model, workspace_path, last_seen, capabilities
@@ -213,6 +235,14 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - **`alert_rules`** — Alert definitions with severity and conditions
 - **`alert_events`** — Alert event log. CRITICAL/HIGH/MEDIUM/INFORMATIONAL
 
+### Team Organization
+- **`team_topology`** — Peer-to-peer communication channels between agents. Defines which agents can talk directly for operational queries (bypassing Hermes routing). Channel types: operational, strategic, escalation
+- **`war_rooms`** — Multi-agent deal collaboration rooms. Linked to pipeline leads. Statuses: active, resolved, archived. Priority: critical, high, standard
+- **`war_room_agents`** — War room participants. Roles: lead, participant, observer
+- **`war_room_activity`** — Activity log within war rooms
+- **`agent_pools`** — Elastic scaling configuration. Defines capability pools (SDR, AE, MI) with min/max instances and scaling strategy (manual, load_based, pipeline_volume)
+- **`fleet_experiments`** — Machine-speed A/B testing. Categories: outreach, qualification, negotiation, retention, process, topology. Statuses: draft, running, paused, completed, cancelled
+
 ### System
 - **`system_config`** — Key-value config store
 
@@ -235,9 +265,19 @@ src/
 │   │   ├── agents/[slug]/    Agent detail + workspace editor
 │   │   │   └── _components/
 │   │   │       └── workspace-files.tsx  ← Preview/Code toggle, tabbed editor
-│   │   ├── office/           Nerve center — hub-and-spoke agent visualization
+│   │   ├── office/           Nerve center — hybrid topology visualization
 │   │   │   └── _components/
-│   │   │       └── nerve-center.tsx  ← SVG hub-and-spoke with animated pulses
+│   │   │       └── nerve-center.tsx  ← SVG hub-and-spoke + P2P channels
+│   │   ├── team-analysis/    Fleet intelligence + org optimization
+│   │   │   └── _components/
+│   │   │       ├── topology-visualizer.tsx  ← Interactive hybrid topology SVG
+│   │   │       ├── optimization-insights.tsx ← AI-generated recommendations
+│   │   │       ├── pools-panel.tsx          ← Elastic agent pool gauges
+│   │   │       └── experiments-panel.tsx     ← Fleet experiment tracker
+│   │   ├── war-room/         Multi-agent deal collaboration
+│   │   │   └── _components/
+│   │   │       ├── war-room-card.tsx   ← Room card with team + activity
+│   │   │       └── war-room-create.tsx ← Create dialog with agent selection
 │   │   ├── costs/            Token/cost tracking (OpenClaw data)
 │   │   │   └── _components/
 │   │   │       ├── cost-chart.tsx
@@ -265,6 +305,8 @@ src/
 │   └── api/                ← Route handlers
 │       ├── agent/            Agent API (pipeline, notify) — Bearer token auth
 │       ├── agents/           Agent detail, workspace files, soul, heartbeat, comms
+│       ├── team-analysis/    Fleet topology, pools, experiments, comm analysis
+│       ├── war-rooms/        War room CRUD + agent assignment
 │       ├── webhooks/         Webhook CRUD + test + deliveries
 │       ├── integrations/     Integration CRUD
 │       ├── memory/           Filesystem memory access
@@ -304,7 +346,7 @@ Desktop sidebar (56px collapsed width), 4 groups:
 
 | Group | Items | Icons |
 |-------|-------|-------|
-| *(core)* | Overview · Agents · Pipeline · Sessions · Office | Dashboard · Bot · GitBranchPlus · Monitor · Building |
+| *(core)* | Overview · Agents · Pipeline · Sessions · Office · Team Analysis · War Room | Dashboard · Bot · GitBranchPlus · Monitor · Building · Network · Shield |
 | **Observe** | Logs · Tokens · Memory | Scroll · Dollar · Brain |
 | **Automate** | Cron · Webhooks · Alerts | Clock · Webhook · Bell |
 | **Admin** | Audit · Gateways · Integrations · Settings | Clipboard · Server · Plug · Settings |

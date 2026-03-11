@@ -824,6 +824,291 @@ export type Database = {
         }
         Relationships: []
       }
+      team_topology: {
+        Row: {
+          id: string
+          from_agent_id: string
+          to_agent_id: string
+          channel_type: string
+          enabled: boolean
+          description: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          from_agent_id: string
+          to_agent_id: string
+          channel_type?: string
+          enabled?: boolean
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          from_agent_id?: string
+          to_agent_id?: string
+          channel_type?: string
+          enabled?: boolean
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_topology_from_agent_id_fkey"
+            columns: ["from_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_topology_to_agent_id_fkey"
+            columns: ["to_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      war_rooms: {
+        Row: {
+          id: string
+          name: string
+          lead_id: string | null
+          status: string
+          priority: string
+          objective: string | null
+          created_at: string
+          updated_at: string
+          resolved_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          lead_id?: string | null
+          status?: string
+          priority?: string
+          objective?: string | null
+          created_at?: string
+          updated_at?: string
+          resolved_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          lead_id?: string | null
+          status?: string
+          priority?: string
+          objective?: string | null
+          created_at?: string
+          updated_at?: string
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "war_rooms_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      war_room_agents: {
+        Row: {
+          id: string
+          war_room_id: string
+          agent_id: string
+          role: string
+          joined_at: string
+        }
+        Insert: {
+          id?: string
+          war_room_id: string
+          agent_id: string
+          role?: string
+          joined_at?: string
+        }
+        Update: {
+          id?: string
+          war_room_id?: string
+          agent_id?: string
+          role?: string
+          joined_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "war_room_agents_war_room_id_fkey"
+            columns: ["war_room_id"]
+            isOneToOne: false
+            referencedRelation: "war_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "war_room_agents_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      war_room_activity: {
+        Row: {
+          id: string
+          war_room_id: string
+          agent_id: string | null
+          action: string
+          detail: string | null
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          war_room_id: string
+          agent_id?: string | null
+          action: string
+          detail?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          war_room_id?: string
+          agent_id?: string | null
+          action?: string
+          detail?: string | null
+          metadata?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "war_room_activity_war_room_id_fkey"
+            columns: ["war_room_id"]
+            isOneToOne: false
+            referencedRelation: "war_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "war_room_activity_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_pools: {
+        Row: {
+          id: string
+          capability: string
+          display_name: string
+          description: string | null
+          base_agent_id: string
+          min_instances: number
+          max_instances: number
+          current_instances: number
+          scaling_strategy: string
+          scaling_config: Json
+          enabled: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          capability: string
+          display_name: string
+          description?: string | null
+          base_agent_id: string
+          min_instances?: number
+          max_instances?: number
+          current_instances?: number
+          scaling_strategy?: string
+          scaling_config?: Json
+          enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          capability?: string
+          display_name?: string
+          description?: string | null
+          base_agent_id?: string
+          min_instances?: number
+          max_instances?: number
+          current_instances?: number
+          scaling_strategy?: string
+          scaling_config?: Json
+          enabled?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_pools_base_agent_id_fkey"
+            columns: ["base_agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_experiments: {
+        Row: {
+          id: string
+          name: string
+          hypothesis: string
+          category: string
+          status: string
+          agent_id: string | null
+          config: Json
+          results: Json
+          started_at: string | null
+          completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          hypothesis: string
+          category: string
+          status?: string
+          agent_id?: string | null
+          config?: Json
+          results?: Json
+          started_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          hypothesis?: string
+          category?: string
+          status?: string
+          agent_id?: string | null
+          config?: Json
+          results?: Json
+          started_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_experiments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

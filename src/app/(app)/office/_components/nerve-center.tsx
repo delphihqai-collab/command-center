@@ -23,6 +23,12 @@ interface AgentData {
   }[];
 }
 
+interface DirectLink {
+  fromSlug: string;
+  toSlug: string;
+  description: string;
+}
+
 const AGENT_EMOJIS: Record<string, string> = {
   hermes: "🪶",
   sdr: "📞",
@@ -71,7 +77,7 @@ const PULSE_CSS = `
 
 /* ────────── Component ────────── */
 
-export function NerveCenter({ agents }: { agents: AgentData[] }) {
+export function NerveCenter({ agents, directLinks = [] }: { agents: AgentData[]; directLinks?: DirectLink[] }) {
   const [selected, setSelected] = useState<AgentData | null>(null);
   const [pulses, setPulses] = useState<
     { id: string; pathId: string; direction: "out" | "in"; color: string }[]
@@ -183,6 +189,41 @@ export function NerveCenter({ agents }: { agents: AgentData[] }) {
                 )}
               </g>
             ))}
+
+            {/* Direct peer-to-peer channels */}
+            {directLinks.map((link, i) => {
+              const fromPos = satellitePositions.find(
+                (s) => s.agent.slug === link.fromSlug
+              );
+              const toPos = satellitePositions.find(
+                (s) => s.agent.slug === link.toSlug
+              );
+              if (!fromPos || !toPos) return null;
+              const mx = (fromPos.x + toPos.x) / 2;
+              const my = (fromPos.y + toPos.y) / 2;
+              const dx = toPos.x - fromPos.x;
+              const dy = toPos.y - fromPos.y;
+              const cx = mx - dy * 0.12;
+              const cy = my + dx * 0.12;
+              return (
+                <path
+                  key={`direct-${i}`}
+                  d={`M ${fromPos.x} ${fromPos.y} Q ${cx} ${cy} ${toPos.x} ${toPos.y}`}
+                  stroke="#22d3ee"
+                  strokeWidth={1}
+                  strokeOpacity={0.2}
+                  strokeDasharray="4 3"
+                  fill="none"
+                >
+                  <animate
+                    attributeName="stroke-opacity"
+                    values="0.15;0.3;0.15"
+                    dur="3s"
+                    repeatCount="indefinite"
+                  />
+                </path>
+              );
+            })}
 
             {/* Animated pulses */}
             {pulses.map((pulse) => {

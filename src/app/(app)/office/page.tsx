@@ -1,12 +1,20 @@
 import { createClient } from "@/lib/supabase/server";
 import { NerveCenter } from "./_components/nerve-center";
-import { Building2 } from "lucide-react";
+import { Building2, Network } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
+
+interface TopologyLink {
+  id: string;
+  from_agent: { slug: string } | null;
+  to_agent: { slug: string } | null;
+  description: string | null;
+}
 
 export default async function OfficePage() {
   const supabase = await createClient();
 
-  const [agentsRes, heartbeatsRes, logsRes] = await Promise.all([
+  const [agentsRes, heartbeatsRes, logsRes, topoRes] = await Promise.all([
     supabase.from("agents").select("*").order("created_at", { ascending: true }),
     supabase
       .from("heartbeats")
@@ -18,11 +26,24 @@ export default async function OfficePage() {
       .select("*, agents!agent_logs_agent_id_fkey(name)")
       .order("created_at", { ascending: false })
       .limit(30),
+    supabase
+      .from("team_topology")
+      .select(
+        "id, description, from_agent:agents!team_topology_from_agent_id_fkey(slug), to_agent:agents!team_topology_to_agent_id_fkey(slug)"
+      )
+      .eq("enabled", true),
   ]);
 
   const agents = agentsRes.data ?? [];
   const heartbeats = heartbeatsRes.data ?? [];
   const logs = logsRes.data ?? [];
+  const rawTopology = (topoRes.data ?? []) as unknown as TopologyLink[];
+
+  const directLinks = rawTopology.map((t) => ({
+    fromSlug: t.from_agent?.slug ?? "",
+    toSlug: t.to_agent?.slug ?? "",
+    description: t.description ?? "",
+  }));
 
   const agentsWithMeta = agents.map((agent) => {
     const latestHeartbeat = heartbeats.find(
@@ -50,12 +71,18 @@ export default async function OfficePage() {
         <span className="text-sm text-zinc-500">
           {activeCount} active · {agents.length} total
         </span>
+        {directLinks.length > 0 && (
+          <Badge variant="outline" className="ml-2 border-cyan-800 text-cyan-400 text-[10px]">
+            <Network className="mr-1 h-3 w-3" />
+            {directLinks.length} P2P channels
+          </Badge>
+        )}
       </div>
       <p className="text-sm text-zinc-400">
-        Hermes is the central brain. All agents report to him. You communicate only with Hermes.
+        Hybrid topology: Hermes orchestrates strategy. Agents communicate directly for operational tasks.
       </p>
       <RealtimeRefresh table="agents" />
-      <NerveCenter agents={agentsWithMeta} />
+      <NerveCenter agents={agentsWithMeta} directLinks={directLinks} />
     </div>
   );
 }
