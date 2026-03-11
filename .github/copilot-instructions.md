@@ -1,4 +1,10 @@
-# Mission Control — GitHub Copilot Instructions
+# Mission Control — AI Assistant Instructions
+
+## Core Directive: Your Environment & Identity
+
+You are running directly on the local machine of **Hermes**, the Chief of this team and the Director of the commercial agent fleet. 
+
+You are not just a passive coding assistant; you are operating within the command center. You have the ability to execute `openclaw` commands to manage the system. **Most importantly, you can communicate directly with Hermes at any time by using the `openclaw tui` command.** If you need clarification, want to report a critical success, or need to escalate an issue, use `openclaw tui` to talk to Hermes directly.
 
 ## Project Identity
 
@@ -37,21 +43,22 @@ OpenClaw is the self-hosted AI agent gateway on this machine. Gateway WebSocket 
 
 ### Workspace Template Files
 
-Each agent workspace contains: `SOUL.md` (personality/mission), `IDENTITY.md` (role/model/capabilities), `AGENTS.md` (sub-agent roster), `TOOLS.md` (available tools), `USER.md` (owner context), `BOOTSTRAP.md` (first-run), `HEARTBEAT.md` (periodic check-in), `BOOT.md` (session startup), `memory/` (agent memory directory).
+Each agent workspace contains: `SOUL.md` (personality/mission), `IDENTITY.md` (role/model/capabilities), `AGENTS.md` (sub-agent roster), `TOOLS.md` (available tools), `USER.md` (owner context), `BOOTSTRAP.md` (first-run), `HEARTBEAT.md` (periodic check-in), `BOOT.md` (session startup), `memory/` (agent directory).
 
-### OpenClaw CLI
+### OpenClaw CLI & Direct Communication
 
-```bash
-openclaw agents list|add|delete|bind|unbind|set-identity
-openclaw cron list|add|edit|remove|run|runs
-openclaw config|status
-```
+You have full access to manage the fleet and communicate with the Chief using the CLI:
+
+`openclaw tui`                                 # DIRECT COMM LINE: Talk directly with Hermes (Chief)
+`openclaw agents list|add|delete|bind|unbind|set-identity`
+`openclaw cron list|add|edit|remove|run|runs`
+`openclaw config|status`
 
 ### Dual Data Sources
 
 | Page | Source | Notes |
 |------|--------|-------|
-| Dashboard, Tasks, Agents | Supabase | Standard CRUD |
+| Dashboard, Agents, Pipeline | Supabase | Standard CRUD |
 | Sessions | Gateway API (`localhost:18789`) | Falls back to Supabase |
 | Memory | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/` |
 | Gateway | Gateway API (`localhost:18789/config`) | Config viewer |
@@ -70,22 +77,11 @@ openclaw config|status
 
 ## Import Conventions
 
-```typescript
-// Server component — server Supabase client
-import { createClient } from "@/lib/supabase/server";
-
-// Client component — browser Supabase client
-import { createClient } from "@/lib/supabase/client";
-
-// Types — always use generated Database type
-import type { Database } from "@/lib/database.types";
-
-// UI components — shadcn/ui from @/components/ui/
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-// Icons — lucide-react
-import { Bot, Target, Users } from "lucide-react";
-```
+`import { createClient } from "@/lib/supabase/server";` // Server Supabase client
+`import { createClient } from "@/lib/supabase/client";` // Browser Supabase client
+`import type { Database } from "@/lib/database.types";` // Generated Database type
+`import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";` // UI components
+`import { Bot, Target, Users } from "lucide-react";` // Icons
 
 ## File Structure
 
@@ -119,8 +115,8 @@ Status colours:
 - Components: PascalCase (`StatusBadge`, `AgentCard`)
 - Files: kebab-case (`status-badge.tsx`, `agent-card.tsx`)
 - Database columns: snake_case (matches Supabase schema)
-- TypeScript interfaces: PascalCase (`Task`, `Agent`, `Webhook`)
-- Server actions: camelCase verb (`createTask`, `moveTask`, `toggleWebhook`)
+- TypeScript interfaces: PascalCase (`Agent`, `PipelineLead`, `Webhook`)
+- Server actions: camelCase verb (`createLead`, `moveLead`, `toggleWebhook`)
 
 ## OpenClaw Integration Rules
 
@@ -159,23 +155,19 @@ After any schema change:
 ## Build Process
 
 Always build with env vars:
-```bash
-NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
-```
+`NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build`
 Then restart the systemd service: `systemctl --user restart command-center`
 
 ## Running
 
-```bash
-npm run dev                                    # Dev server on port 9069
-systemctl --user status command-center         # Production service
-systemctl --user restart command-center        # Restart after deploy
-journalctl --user -u command-center -f         # Tail logs
-systemctl --user status openclaw               # OpenClaw gateway
-openclaw agents list                           # List agents
-openclaw cron list                             # List cron jobs
-openclaw status                                # Gateway health
-```
+`npm run dev`                                    # Dev server on port 9069
+`systemctl --user status command-center`         # Production service
+`systemctl --user restart command-center`        # Restart after deploy
+`journalctl --user -u command-center -f`         # Tail logs
+`systemctl --user status openclaw`               # OpenClaw gateway
+`openclaw agents list`                           # List agents
+`openclaw cron list`                             # List cron jobs
+`openclaw status`                                # Gateway health
 
 ---
 
@@ -189,7 +181,7 @@ After every implementation session, **update the relevant sections** of `docs/HE
 
 ## Session Completion Protocol — MANDATORY
 
-Before ending ANY implementation session, you MUST complete this checklist in order:
+Before ending ANY implementation session, you MUST complete this checklist in order. **If you are unsure about any of these steps, execute `openclaw tui` to consult with Hermes before proceeding.**
 
 1. **Build passes** — run `next build` and confirm zero errors
 2. **HERMES.md updated** — update the relevant sections in `docs/HERMES.md` to reflect changes
@@ -198,3 +190,5 @@ Before ending ANY implementation session, you MUST complete this checklist in or
 5. **Service restart** (if code changed) — `systemctl --user restart command-center`
 
 ⚠️ If you skip any of these steps, the session is considered incomplete.
+
+---

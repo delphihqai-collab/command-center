@@ -8,29 +8,27 @@ export async function GET(request: NextRequest) {
 
   const q = request.nextUrl.searchParams.get("q")?.trim();
   if (!q || q.length < 2) {
-    return NextResponse.json({ results: { tasks: [], agents: [] } });
+    return NextResponse.json({ results: { agents: [], leads: [] } });
   }
 
-  const tsQuery = q.split(/\s+/).filter(Boolean).join(" & ");
-
-  const [tasksRes, agentsRes] = await Promise.all([
-    supabase
-      .from("tasks")
-      .select("id, title, status, priority")
-      .textSearch("search_vector", tsQuery)
-      .is("archived_at", null)
-      .limit(5),
+  const [agentsRes, leadsRes] = await Promise.all([
     supabase
       .from("agents")
       .select("id, slug, name, status")
       .ilike("name", `%${q}%`)
       .limit(5),
+    supabase
+      .from("pipeline_leads")
+      .select("id, company_name, stage")
+      .ilike("company_name", `%${q}%`)
+      .not("stage", "in", '("closed_won","closed_lost","disqualified")')
+      .limit(5),
   ]);
 
   return NextResponse.json({
     results: {
-      tasks: tasksRes.data ?? [],
       agents: agentsRes.data ?? [],
+      leads: leadsRes.data ?? [],
     },
   });
 }

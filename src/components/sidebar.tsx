@@ -16,7 +16,6 @@ import {
   Server,
   Settings,
   LogOut,
-  KanbanSquare,
   Webhook,
   Clock,
   Plug,
@@ -41,7 +40,6 @@ const navGroups: NavGroup[] = [
       { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
       { href: "/agents", label: "Agents", icon: Bot },
       { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
-      { href: "/tasks", label: "Tasks", icon: KanbanSquare },
       { href: "/sessions", label: "Sessions", icon: Monitor },
       { href: "/office", label: "Office", icon: Building2 },
     ],
@@ -75,7 +73,7 @@ const navGroups: NavGroup[] = [
 
 const mobileNavItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-  { href: "/tasks", label: "Tasks", icon: KanbanSquare },
+  { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/office", label: "Office", icon: Building2 },
@@ -99,7 +97,7 @@ export function Sidebar() {
           </Link>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-3">
+        <nav className="flex-1 overflow-hidden px-2 py-3">
           {navGroups.map((group, groupIndex) => (
             <div key={group.label ?? "core"}>
               {groupIndex > 0 && (
@@ -120,7 +118,7 @@ export function Sidebar() {
                       key={item.href}
                       href={item.href}
                       className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                        "flex items-center gap-3 rounded-md px-3 py-[7px] text-sm transition-colors",
                         isActive
                           ? "bg-zinc-800 text-zinc-50"
                           : "text-zinc-400 hover:bg-zinc-900 hover:text-zinc-50"
@@ -140,7 +138,7 @@ export function Sidebar() {
           <form action={logout}>
             <button
               type="submit"
-              className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
+              className="flex w-full items-center gap-3 rounded-md px-3 py-[7px] text-sm text-zinc-400 transition-colors hover:bg-zinc-900 hover:text-zinc-50"
             >
               <LogOut className="h-4 w-4" />
               Sign out

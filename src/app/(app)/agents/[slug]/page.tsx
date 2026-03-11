@@ -22,7 +22,7 @@ export default async function AgentDetailPage({ params }: Props) {
 
   if (!agent) notFound();
 
-  const [reportsRes, logsRes, tasksRes, commsRes] = await Promise.all([
+  const [reportsRes, logsRes, leadsRes, commsRes] = await Promise.all([
     supabase
       .from("agent_reports")
       .select("*")
@@ -36,10 +36,10 @@ export default async function AgentDetailPage({ params }: Props) {
       .order("created_at", { ascending: false })
       .limit(50),
     supabase
-      .from("tasks")
-      .select("id, title, status, priority, updated_at")
-      .eq("assigned_to", agent.id)
-      .is("archived_at", null)
+      .from("pipeline_leads")
+      .select("id, company_name, stage, deal_value_eur, updated_at")
+      .eq("assigned_agent_id", agent.id)
+      .not("stage", "in", '("closed_won","closed_lost","disqualified")')
       .order("updated_at", { ascending: false })
       .limit(10),
     supabase
@@ -52,7 +52,7 @@ export default async function AgentDetailPage({ params }: Props) {
 
   const reports = reportsRes.data ?? [];
   const logs = logsRes.data ?? [];
-  const tasks = tasksRes.data ?? [];
+  const leads = leadsRes.data ?? [];
   const comms = commsRes.data ?? [];
   const capabilities = (agent.capabilities ?? []) as string[];
 
@@ -137,29 +137,33 @@ export default async function AgentDetailPage({ params }: Props) {
       {/* Workspace Files */}
       <WorkspaceFiles agentId={agent.id} />
 
-      {/* Assigned Tasks */}
+      {/* Pipeline Leads */}
       <Card className="border-zinc-800 bg-zinc-900">
         <CardHeader>
           <CardTitle className="text-sm font-medium text-zinc-400">
-            Assigned Tasks ({tasks.length})
+            Pipeline Leads ({leads.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {tasks.length === 0 ? (
-            <p className="text-sm text-zinc-500">No assigned tasks.</p>
+          {leads.length === 0 ? (
+            <p className="text-sm text-zinc-500">No assigned leads.</p>
           ) : (
             <div className="space-y-2">
-              {tasks.map((t) => (
+              {leads.map((l) => (
                 <Link
-                  key={t.id}
-                  href={`/tasks/${t.id}`}
+                  key={l.id}
+                  href={`/pipeline/${l.id}`}
                   className="flex items-center justify-between rounded border border-zinc-800 bg-zinc-950 p-2 transition-colors hover:border-zinc-700"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-zinc-50">{t.title}</span>
-                    <StatusBadge status={t.status} />
-                    <StatusBadge status={t.priority} />
+                    <span className="text-sm text-zinc-50">{l.company_name}</span>
+                    <StatusBadge status={l.stage} />
                   </div>
+                  {l.deal_value_eur && (
+                    <span className="text-xs text-emerald-400">
+                      €{l.deal_value_eur.toLocaleString("en-GB")}
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>

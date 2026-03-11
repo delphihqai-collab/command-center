@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Search, KanbanSquare, Bot } from "lucide-react";
+import { Search, Bot, GitBranchPlus } from "lucide-react";
 import useSWR from "swr";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
@@ -16,8 +16,8 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 interface SearchResults {
   results: {
-    tasks: { id: string; title: string; status: string; priority: string }[];
     agents: { id: string; slug: string; name: string; status: string }[];
+    leads: { id: string; company_name: string; stage: string }[];
   };
 }
 
@@ -53,8 +53,8 @@ export function CommandPalette() {
   const results = data?.results;
   const hasResults =
     results &&
-    ((results.tasks?.length ?? 0) > 0 ||
-      (results.agents?.length ?? 0) > 0);
+    ((results.agents?.length ?? 0) > 0 ||
+      (results.leads?.length ?? 0) > 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -67,7 +67,7 @@ export function CommandPalette() {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search tasks, agents..."
+            placeholder="Search agents, leads..."
             className="border-0 bg-transparent text-sm text-zinc-50 placeholder:text-zinc-500 focus-visible:ring-0"
             autoFocus
           />
@@ -84,20 +84,20 @@ export function CommandPalette() {
               </p>
             )}
 
-            {results?.tasks && results.tasks.length > 0 && (
+            {results?.leads && results.leads.length > 0 && (
               <div className="mb-2">
                 <p className="px-2 py-1 text-xs font-medium text-zinc-500">
-                  Tasks
+                  Pipeline Leads
                 </p>
-                {results.tasks.map((task) => (
+                {results.leads.map((lead) => (
                   <button
-                    key={task.id}
-                    onClick={() => navigate(`/tasks/${task.id}`)}
+                    key={lead.id}
+                    onClick={() => navigate(`/pipeline/${lead.id}`)}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
                   >
-                    <KanbanSquare className="h-3.5 w-3.5 text-indigo-400" />
-                    <span className="truncate">{task.title}</span>
-                    <span className="ml-auto text-xs text-zinc-500">{task.status}</span>
+                    <GitBranchPlus className="h-3.5 w-3.5 text-indigo-400" />
+                    <span className="truncate">{lead.company_name}</span>
+                    <span className="ml-auto text-xs text-zinc-500">{lead.stage}</span>
                   </button>
                 ))}
               </div>

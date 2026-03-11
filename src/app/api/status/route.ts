@@ -6,9 +6,12 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const [agentRes, taskRes, alertRes] = await Promise.all([
+  const [agentRes, leadsRes, alertRes] = await Promise.all([
     supabase.from("agents").select("id, status").eq("status", "active"),
-    supabase.from("tasks").select("id, status").is("archived_at", null),
+    supabase
+      .from("pipeline_leads")
+      .select("id, stage")
+      .not("stage", "in", '("closed_won","closed_lost","disqualified")'),
     supabase.from("alert_events").select("id").eq("resolved", false),
   ]);
 
@@ -18,9 +21,8 @@ export async function GET() {
     agents: {
       active: agentRes.data?.length ?? 0,
     },
-    tasks: {
-      total: taskRes.data?.length ?? 0,
-      in_progress: taskRes.data?.filter((t) => t.status === "in_progress").length ?? 0,
+    pipeline: {
+      active_leads: leadsRes.data?.length ?? 0,
     },
     alerts: {
       open: alertRes.data?.length ?? 0,

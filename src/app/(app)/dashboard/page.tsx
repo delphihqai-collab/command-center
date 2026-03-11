@@ -6,12 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import {
-  KanbanSquare,
-  Eye,
+  GitBranchPlus,
   Bot,
   Bell,
   DollarSign,
   Activity,
+  TrendingUp,
 } from "lucide-react";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
 
@@ -26,18 +26,16 @@ async function KPICards() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-  const [activeTasksRes, reviewTasksRes, agentsRes, alertsRes, costsRes] =
+  const [activeLeadsRes, pipelineValueRes, agentsRes, alertsRes, costsRes] =
     await Promise.all([
       supabase
-        .from("tasks")
+        .from("pipeline_leads")
         .select("id", { count: "exact", head: true })
-        .is("archived_at", null)
-        .not("status", "in", '("inbox","done")'),
+        .not("stage", "in", '("closed_won","closed_lost","disqualified")'),
       supabase
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .eq("status", "review")
-        .is("archived_at", null),
+        .from("pipeline_leads")
+        .select("deal_value_eur")
+        .not("stage", "in", '("closed_won","closed_lost","disqualified")'),
       supabase
         .from("agents")
         .select("id, status"),
@@ -51,8 +49,11 @@ async function KPICards() {
         .gte("created_at", monthStart),
     ]);
 
-  const activeTasks = activeTasksRes.count ?? 0;
-  const reviewTasks = reviewTasksRes.count ?? 0;
+  const activeLeads = activeLeadsRes.count ?? 0;
+  const pipelineValue = (pipelineValueRes.data ?? []).reduce(
+    (sum, r) => sum + (r.deal_value_eur ?? 0),
+    0
+  );
   const agents = agentsRes.data ?? [];
   const activeAgents = agents.filter((a) => a.status === "active").length;
   const openAlerts = alertsRes.count ?? 0;
@@ -63,18 +64,18 @@ async function KPICards() {
 
   const kpis = [
     {
-      label: "Active Tasks",
-      value: activeTasks.toString(),
-      icon: KanbanSquare,
+      label: "Active Leads",
+      value: activeLeads.toString(),
+      icon: GitBranchPlus,
       color: "text-indigo-400",
-      href: "/tasks",
+      href: "/pipeline",
     },
     {
-      label: "In Review",
-      value: reviewTasks.toString(),
-      icon: Eye,
-      color: "text-purple-400",
-      href: "/tasks",
+      label: "Pipeline Value",
+      value: `€${pipelineValue.toLocaleString("en-GB")}`,
+      icon: TrendingUp,
+      color: "text-emerald-400",
+      href: "/pipeline",
     },
     {
       label: "Active Agents",
@@ -120,52 +121,56 @@ async function KPICards() {
   );
 }
 
-/* ────────────── Recent Tasks ────────────── */
-async function RecentTasks() {
+/* ────────────── Recent Pipeline Leads ────────────── */
+async function RecentLeads() {
   const supabase = await createClient();
 
-  const { data: tasks } = await supabase
-    .from("tasks")
-    .select("id, title, status, priority, created_at, agents:assigned_to(name)")
-    .is("archived_at", null)
+  const { data: leads } = await supabase
+    .from("pipeline_leads")
+    .select("id, company_name, stage, deal_value_eur, confidence, created_at, agents:assigned_agent_id(name)")
+    .not("stage", "in", '("closed_won","closed_lost","disqualified")')
     .order("created_at", { ascending: false })
     .limit(10);
 
-  const items = tasks ?? [];
+  const items = leads ?? [];
 
   return (
     <Card className="border-zinc-800 bg-zinc-900">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium text-zinc-400">
-          Recent Tasks
+          Recent Leads
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <RealtimeRefresh table="tasks" />
+        <RealtimeRefresh table="pipeline_leads" />
         {items.length === 0 ? (
-          <p className="text-sm text-zinc-500">No tasks yet.</p>
+          <p className="text-sm text-zinc-500">No active leads yet.</p>
         ) : (
           <div className="space-y-3">
-            {items.map((task) => (
+            {items.map((lead) => (
               <Link
-                key={task.id}
-                href={`/tasks/${task.id}`}
+                key={lead.id}
+                href={`/pipeline/${lead.id}`}
                 className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-3 transition-colors hover:border-zinc-700"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm text-zinc-50">{task.title}</p>
+                  <p className="text-sm text-zinc-50">{lead.company_name}</p>
                   <div className="mt-1 flex items-center gap-2">
-                    <StatusBadge status={task.status} />
-                    <StatusBadge status={task.priority} />
-                    {task.agents && (
+                    <StatusBadge status={lead.stage} />
+                    {lead.deal_value_eur && (
+                      <span className="text-xs text-emerald-400">
+                        €{lead.deal_value_eur.toLocaleString("en-GB")}
+                      </span>
+                    )}
+                    {lead.agents && (
                       <span className="text-xs text-zinc-500">
-                        {(task.agents as unknown as { name: string })?.name}
+                        {(lead.agents as unknown as { name: string })?.name}
                       </span>
                     )}
                   </div>
                 </div>
                 <span className="whitespace-nowrap text-xs text-zinc-500">
-                  {formatDistanceToNow(new Date(task.created_at), {
+                  {formatDistanceToNow(new Date(lead.created_at), {
                     addSuffix: true,
                   })}
                 </span>
@@ -178,53 +183,56 @@ async function RecentTasks() {
   );
 }
 
-/* ────────────── Tasks By Agent ────────────── */
-async function TasksByAgent() {
+/* ────────────── Pipeline by Stage ────────────── */
+async function PipelineByStage() {
   const supabase = await createClient();
 
-  const [agentsRes, tasksRes] = await Promise.all([
-    supabase.from("agents").select("id, name, slug, status").order("slug"),
-    supabase
-      .from("tasks")
-      .select("assigned_to, status")
-      .is("archived_at", null)
-      .not("status", "eq", "done"),
-  ]);
+  const { data: leads } = await supabase
+    .from("pipeline_leads")
+    .select("stage, deal_value_eur")
+    .not("stage", "in", '("closed_won","closed_lost","disqualified")');
 
-  const agents = agentsRes.data ?? [];
-  const tasks = tasksRes.data ?? [];
+  const items = leads ?? [];
 
-  const countMap = new Map<string, number>();
-  for (const t of tasks) {
-    if (t.assigned_to) {
-      countMap.set(t.assigned_to, (countMap.get(t.assigned_to) ?? 0) + 1);
-    }
-  }
+  const stages = [
+    { key: "new_lead", label: "New Lead", color: "bg-zinc-500" },
+    { key: "sdr_qualification", label: "SDR Qualification", color: "bg-amber-500" },
+    { key: "qualified", label: "Qualified", color: "bg-emerald-500" },
+    { key: "discovery", label: "Discovery", color: "bg-indigo-500" },
+    { key: "proposal", label: "Proposal", color: "bg-purple-500" },
+    { key: "negotiation", label: "Negotiation", color: "bg-orange-500" },
+  ];
 
   return (
     <Card className="border-zinc-800 bg-zinc-900">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium text-zinc-400">
-          Tasks by Agent
+          Pipeline by Stage
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {agents.map((agent) => {
-            const count = countMap.get(agent.id) ?? 0;
+          {stages.map((stage) => {
+            const stageLeads = items.filter((l) => l.stage === stage.key);
+            const value = stageLeads.reduce((sum, l) => sum + (l.deal_value_eur ?? 0), 0);
             return (
               <Link
-                key={agent.id}
-                href={`/agents/${agent.slug}`}
+                key={stage.key}
+                href="/pipeline"
                 className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-950 p-2 transition-colors hover:border-zinc-700"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-zinc-50">{agent.name}</span>
-                  <StatusBadge status={agent.status} />
+                  <span className={`h-2 w-2 rounded-full ${stage.color}`} />
+                  <span className="text-sm text-zinc-50">{stage.label}</span>
                 </div>
-                <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-300">
-                  {count}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-zinc-500">
+                    {value > 0 ? `€${value.toLocaleString("en-GB")}` : "—"}
+                  </span>
+                  <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-300">
+                    {stageLeads.length}
+                  </span>
+                </div>
               </Link>
             );
           })}
@@ -397,10 +405,10 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Suspense fallback={<CardSkeleton />}>
-          <RecentTasks />
+          <RecentLeads />
         </Suspense>
         <Suspense fallback={<CardSkeleton />}>
-          <TasksByAgent />
+          <PipelineByStage />
         </Suspense>
       </div>
 

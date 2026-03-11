@@ -10,6 +10,10 @@ Mission Control is your dashboard, Hermes. It's how Delphi sees and controls the
 
 You don't interact with Mission Control directly. You interact with OpenClaw. But Mission Control reads your data, your files, your sessions, your costs, your memory, your cron jobs — and lets Delphi manage all of it from a browser.
 
+### Communication Hierarchy
+
+**Delphi → Hermes → Sub-agents.** Delphi only communicates with you (Hermes). All sub-agents report to you, never to Delphi directly. You are the central brain — all information flows through you. Sub-agents communicate with each other as needed, but all human communication goes through you.
+
 ---
 
 ## The Stack
@@ -22,7 +26,7 @@ You don't interact with Mission Control directly. You interact with OpenClaw. Bu
 | Database | Supabase (PostgreSQL + Auth + SSR + Realtime) |
 | Charts | Recharts |
 | Icons | Lucide React |
-| Drag & Drop | @dnd-kit (Kanban board) |
+| Drag & Drop | @dnd-kit (Pipeline board) |
 | Dates | date-fns |
 | Validation | Zod |
 | Toasts | Sonner |
@@ -99,7 +103,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 | Page | Primary Source | Notes |
 |------|---------------|-------|
-| Dashboard, Tasks, Agents, Pipeline | Supabase | Standard CRUD |
+| Dashboard, Agents, Pipeline | Supabase | Standard CRUD |
 | Sessions | OpenClaw CLI (`openclaw sessions`) | Supabase `agents` table for metadata fallback |
 | Memory | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/*/memory/` |
 | Workspace Files | Filesystem (`/api/agents/[id]/workspace`) | Reads/writes SOUL.md, IDENTITY.md, etc. |
@@ -117,23 +121,19 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 ### Core Navigation
 
-**Dashboard** (`/dashboard`) — Home page. 5 KPI tiles: active tasks, in-review count, active agents, open alerts, MTD token cost. All fetched via `Promise.all()` for parallel queries.
+**Dashboard** (`/dashboard`) — Home page. 5 KPI tiles: active leads, pipeline value (EUR), active agents, open alerts, MTD token cost. Below: recent pipeline leads + pipeline by stage breakdown. Agent status grid + activity feed. All fetched via `Promise.all()` for parallel queries.
 
 **Agents** (`/agents`) — Grid of all 8 agents. Cards show: name, type badge, model, slug, status. Click through to detail page.
 
-**Agent Detail** (`/agents/[slug]`) — Full agent profile. Shows: slug, type, model, last_seen, capabilities. Sections: identity card, **workspace file editor** (tabbed, all config files with Preview/Code toggle), 10 recent reports, 50 action logs, 10 assigned tasks, 10 recent comms.
+**Agent Detail** (`/agents/[slug]`) — Full agent profile. Shows: slug, type, model, last_seen, capabilities. Sections: identity card, **workspace file editor** (tabbed, all config files with Preview/Code toggle), 10 recent reports, 50 action logs, 10 assigned pipeline leads, 10 recent comms.
 
-**Tasks** (`/tasks`) — The centerpiece. 6-column Kanban board: inbox → backlog → todo → in_progress → review → done. Drag-and-drop via @dnd-kit. Creates, assigns, re-prioritizes tasks. Full-text search on task content.
-
-**Task Detail** (`/tasks/[id]`) — Single task view. Title, status, priority, assignee, project, due date. Threaded comments + quality reviews. "Send to Hermes" button triggers OpenClaw to assign work to the appropriate agent.
-
-**Pipeline** (`/pipeline`) — Commercial pipeline board. 6 active stage columns: New Lead → SDR Qualification → Qualified → Discovery → Proposal → Negotiation. Each lead card shows: company name, contact, deal value (EUR), confidence %, assigned agent, time since creation. Header shows total pipeline value and lead count. Click through to lead detail.
+**Pipeline** (`/pipeline`) — The centerpiece. Commercial pipeline board. 6 active stage columns: New Lead → SDR Qualification → Qualified → Discovery → Proposal → Negotiation. Each lead card shows: company name, contact, deal value (EUR), confidence %, assigned agent, time since creation. Header shows total pipeline value and lead count. Click through to lead detail.
 
 **Pipeline Detail** (`/pipeline/[id]`) — Single lead view. Company info, contact details, SDR brief (full markdown), discovery notes, metadata (sector, location, BANT score, compliance). Stage action buttons: Move Forward, Closed Won, Lost, Disqualify. "Send to Hermes" button triggers OpenClaw to process the lead through the next pipeline stage.
 
 **Sessions** (`/sessions`) — Live session monitor. Fetches data via `openclaw sessions --all-agents --json` CLI. Shows per session: agent name, session key, kind (direct/group with color-coded badges), model name, context usage (progress bar — green < 50%, amber < 80%, red > 80%), last activity (relative time), estimated cost (from `model-costs.ts`). Multiple sessions per agent visible (main + cron). Child `:run:` sessions (per-execution cron runs) are filtered out to reduce noise — only the parent cron session is shown.
 
-**Office** (`/office`) — Pixel-art grid. Agents displayed as tiles with rank (director/senior/standard/support/research). Shows status, last heartbeat, recent logs. Visual overview of fleet health.
+**Office** (`/office`) — Nerve center visualization. Hub-and-spoke layout with Hermes at the center and all 7 sub-agents arranged in a circle around him, connected by animated lines. Active agents show pulsing connection lines with animated light dots flowing between Hermes and agents (outbound = Hermes→agent, inbound = agent→Hermes) to visualize real-time data flow. Each agent node shows emoji, name, and status dot. Click any agent to open a detail sheet with status, heartbeat, recent activity, and reporting chain info. Clearly shows the hierarchy: all agents report to Hermes, Hermes is the only point of contact with Delphi.
 
 ### Observe
 
@@ -165,11 +165,6 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 ## Every API Route
 
-### Tasks
-- `GET/POST /api/tasks` — List (filter by status/assigned_to/project_id) or create tasks
-- `GET/PATCH/DELETE /api/tasks/[id]` — Single task CRUD. DELETE soft-deletes (sets `archived_at`)
-- `GET/POST /api/tasks/[id]/comments` — Task comment thread. Supports nested comments via `parent_id`
-
 ### Agents
 - `GET/POST /api/agents/comms` — Agent-to-agent communication log
 - `GET/PUT /api/agents/[id]/soul` — Get/upsert agent SOUL (markdown)
@@ -185,13 +180,12 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - `GET /api/memory` — Browse agent memory files (filesystem)
 - `GET /api/logs/journal` — Fetch journalctl output for command-center service
 - `GET /api/integrations` + `POST` — Third-party integration CRUD
-- `GET /api/status` — System health (active agents, total tasks, in_progress, open alerts)
-- `GET /api/search` — Full-text search across tasks + agents (min 2 chars)
+- `GET /api/status` — System health (active agents, active pipeline leads, open alerts)
+- `GET /api/search` — Full-text search across agents + pipeline leads (min 2 chars)
 
 ### Agent API (for Hermes + sub-agents)
 - `GET/POST/PATCH /api/agent/pipeline` — Pipeline lead CRUD. Auth via `Authorization: Bearer <AGENT_API_KEY>`. Agents cannot move leads to `closed_won`, `closed_lost`, or `disqualified` (403). Stage order: new_lead → sdr_qualification → qualified → discovery → proposal → negotiation → closed_won/closed_lost/disqualified
-- `GET/POST/PATCH /api/agent/tasks` — Task CRUD for agents. Same auth. Agents cannot move tasks to `done` (403)
-- `POST /api/agent/notify` — Human-triggered. Sends a contextual prompt to Hermes via `openclaw agent`. Used by "Send to Hermes" buttons on task and pipeline detail pages
+- `POST /api/agent/notify` — Human-triggered. Sends a contextual prompt to Hermes via `openclaw agent`. Used by "Send to Hermes" button on pipeline detail page. Only supports `type: "pipeline"`
 
 ---
 
@@ -205,12 +199,8 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - **`agent_comms`** — Inter-agent messages. Channel routing (general, escalation, etc.)
 - **`heartbeats`** — Cron job fire history
 
-### Tasks & Pipeline
-- **`tasks`** — The centerpiece table. 6 statuses, 4 priorities, full-text search vector, soft delete via `archived_at`
-- **`pipeline_leads`** — Commercial pipeline tracking. 9 stages (new_lead through closed_won/closed_lost/disqualified). Fields: company_name, contact_name, contact_email, contact_role, source, stage, assigned_agent_id, deal_value_eur, confidence, sdr_brief, discovery_notes, proposal_url, lost_reason, metadata (JSONB)
-- **`task_comments`** — Threaded comments per task
-- **`projects`** — Multi-project organization. Ticket prefix + auto-increment counter
-- **`quality_reviews`** — QA sign-off records per task
+### Pipeline
+- **`pipeline_leads`** — The centerpiece table. Commercial pipeline tracking. 9 stages (new_lead through closed_won/closed_lost/disqualified). Fields: company_name, contact_name, contact_email, contact_role, source, stage, assigned_agent_id, deal_value_eur, confidence, sdr_brief, discovery_notes, proposal_url, lost_reason, metadata (JSONB)
 
 ### Webhooks & Integrations
 - **`webhooks`** — Outbound webhooks with HMAC signing and failure tracking
@@ -234,8 +224,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 src/
 ├── app/
 │   ├── (app)/              ← Protected routes (require auth)
-│   │   ├── dashboard/        Overview KPIs + activity
-│   │   ├── tasks/            Kanban board (6 columns, drag-drop)
+│   │   ├── dashboard/        Overview KPIs + pipeline summary + activity
 │   │   ├── pipeline/         Commercial pipeline board (6 active stage columns)
 │   │   │   └── _components/
 │   │   │       ├── pipeline-board.tsx   ← Stage columns with lead cards
@@ -246,7 +235,9 @@ src/
 │   │   ├── agents/[slug]/    Agent detail + workspace editor
 │   │   │   └── _components/
 │   │   │       └── workspace-files.tsx  ← Preview/Code toggle, tabbed editor
-│   │   ├── office/           Pixel-art agent grid
+│   │   ├── office/           Nerve center — hub-and-spoke agent visualization
+│   │   │   └── _components/
+│   │   │       └── nerve-center.tsx  ← SVG hub-and-spoke with animated pulses
 │   │   ├── costs/            Token/cost tracking (OpenClaw data)
 │   │   │   └── _components/
 │   │   │       ├── cost-chart.tsx
@@ -272,18 +263,17 @@ src/
 │   │   └── settings/         App settings
 │   ├── (auth)/             ← Login page + server actions
 │   └── api/                ← Route handlers
-│       ├── agent/            Agent API (pipeline, tasks, notify) — Bearer token auth
+│       ├── agent/            Agent API (pipeline, notify) — Bearer token auth
 │       ├── agents/           Agent detail, workspace files, soul, heartbeat, comms
-│       ├── tasks/            Task CRUD + comments
 │       ├── webhooks/         Webhook CRUD + test + deliveries
 │       ├── integrations/     Integration CRUD
 │       ├── memory/           Filesystem memory access
 │       ├── logs/             journalctl output
-│       ├── search/           Full-text search (tasks + agents)
+│       ├── search/           Full-text search (agents + pipeline leads)
 │       └── status/           System health endpoint
 ├── components/
 │   ├── ui/                 ← shadcn/ui primitives (do not edit)
-│   ├── sidebar.tsx           Navigation (4 groups, 18 items)
+│   ├── sidebar.tsx           Navigation (4 groups, 17 items)
 │   ├── command-palette.tsx   Cmd+K global search
 │   ├── realtime-refresh.tsx  Supabase Realtime listener
 │   ├── realtime-table.tsx    Realtime table wrapper
@@ -296,7 +286,7 @@ src/
 │   ├── supabase/admin.ts     Admin client (service role, bypasses RLS — agent API only)
 │   ├── agent-auth.ts         Agent API key validation (timing-safe compare)
 │   ├── database.types.ts     Auto-generated types (never edit manually)
-│   ├── types.ts              Type aliases: Agent, Task, Project, Webhook...
+│   ├── types.ts              Type aliases: Agent, PipelineLead, Webhook...
 │   ├── memory-paths.ts       Agent slug → filesystem memory directory map
 │   ├── model-costs.ts        Token cost rates per model
 │   ├── schemas.ts            Zod validation schemas
@@ -314,12 +304,12 @@ Desktop sidebar (56px collapsed width), 4 groups:
 
 | Group | Items | Icons |
 |-------|-------|-------|
-| *(core)* | Overview · Agents · Pipeline · Tasks · Sessions · Office | Dashboard · Bot · GitBranchPlus · Kanban · Monitor · Building |
+| *(core)* | Overview · Agents · Pipeline · Sessions · Office | Dashboard · Bot · GitBranchPlus · Monitor · Building |
 | **Observe** | Logs · Tokens · Memory | Scroll · Dollar · Brain |
 | **Automate** | Cron · Webhooks · Alerts | Clock · Webhook · Bell |
 | **Admin** | Audit · Gateways · Integrations · Settings | Clipboard · Server · Plug · Settings |
 
-Mobile bottom nav: Dashboard, Tasks, Agents, Alerts, Office (5 quick links)
+Mobile bottom nav: Dashboard, Pipeline, Agents, Alerts, Office (5 quick links)
 
 ---
 
@@ -346,11 +336,3 @@ npx supabase gen types typescript --linked > src/lib/database.types.ts
 # Build (env vars baked at build time)
 NEXT_PUBLIC_SUPABASE_URL="..." NEXT_PUBLIC_SUPABASE_ANON_KEY="..." npm run build
 ```
-
-### 2026-03-05 — Logs page: rewired to journalctl + full filtering
-
-**Scope:** The Logs page was reading from the empty `agent_logs` Supabase table — showing "No logs found". Rewired to read real system logs from journalctl for both `openclaw-gateway` (~12k entries) and `command-center` (~9k entries) services. Added comprehensive filtering: source, time range, level (error/warning/info), component multi-select dropdown, server-side grep, and instant client-side text filter. Clickable source badges and component labels in table rows act as quick filters.
-**Changes:**
-- `src/app/api/logs/journal/route.ts` — complete rewrite. Reads from both `openclaw-gateway` and `command-center` systemd units. Accepts query params: `source` (all/gateway/app), `since` (ISO timestamp), `lines` (up to 1000), `grep` (text filter). Parses gateway log messages to extract `[component]` tags. Returns structured entries with id, timestamp, source, component, message, priority.
-- `src/app/(app)/logs/_components/log-viewer.tsx` — complete rewrite. Two-row filter bar: Row 1 has source pills, time range pills, server-side grep input, refresh, live tail. Row 2 has level pills (All/Errors/Warnings/Info), component multi-select dropdown (dynamically populated from results), instant client-side text filter, clear-filters button, entry counter. Table rows have clickable source badges and component labels that set filters on click. Level-colored dots on components. Footer shows active filter count.
-- `src/app/(app)/logs/page.tsx` — simplified. Removed agents query and searchParams. LogViewer no longer needs props.

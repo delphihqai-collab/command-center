@@ -1,18 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { OfficeFloor } from "./_components/office-floor";
+import { NerveCenter } from "./_components/nerve-center";
 import { Building2 } from "lucide-react";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-
-const AGENT_RANKS: Record<string, "director" | "senior" | "standard" | "support" | "research"> = {
-  hermes: "director",
-  ae: "senior",
-  am: "standard",
-  sdr: "standard",
-  finance: "support",
-  legal: "support",
-  "market-intelligence": "research",
-  "knowledge-curator": "research",
-};
 
 export default async function OfficePage() {
   const supabase = await createClient();
@@ -45,11 +34,13 @@ export default async function OfficePage() {
 
     return {
       ...agent,
-      rank: AGENT_RANKS[agent.slug] ?? "standard",
+      type: agent.type ?? "worker",
       last_heartbeat_at: latestHeartbeat?.fired_at ?? null,
       recentLogs,
     };
   });
+
+  const activeCount = agents.filter((a) => a.status === "active").length;
 
   return (
     <div className="space-y-4">
@@ -57,11 +48,14 @@ export default async function OfficePage() {
         <Building2 className="h-5 w-5 text-zinc-400" />
         <h1 className="text-2xl font-semibold text-zinc-50">The Office</h1>
         <span className="text-sm text-zinc-500">
-          {agents.filter((a) => a.status === "active").length} active · {agents.length} total
+          {activeCount} active · {agents.length} total
         </span>
       </div>
+      <p className="text-sm text-zinc-400">
+        Hermes is the central brain. All agents report to him. You communicate only with Hermes.
+      </p>
       <RealtimeRefresh table="agents" />
-      <OfficeFloor agents={agentsWithMeta} />
+      <NerveCenter agents={agentsWithMeta} />
     </div>
   );
 }

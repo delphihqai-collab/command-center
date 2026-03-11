@@ -2,7 +2,7 @@
 
 ## What This Project Is
 
-Mission Control is the orchestration dashboard for **Hermes** — a commercial AI agent fleet running on **OpenClaw**. It provides Delphi with live visibility and full control over the agent fleet: tasks, workflows, comms, costs, sessions, memory, cron, webhooks, and system health.
+Mission Control is the orchestration dashboard for **Hermes** — a commercial AI agent fleet running on **OpenClaw**. It provides Delphi with live visibility and full control over the agent fleet: pipeline, workflows, comms, costs, sessions, memory, cron, webhooks, and system health.
 
 The app is a **Next.js 16 (App Router) + Supabase** project running on port 9069 on a dedicated Linux machine. It is not publicly hosted.
 
@@ -129,12 +129,11 @@ src/
 │   │   └── settings/     ← App settings
 │   ├── (auth)/         ← Login page + server actions
 │   ├── api/
-│   │   ├── tasks/        ← Task CRUD + comments
 │   │   ├── agents/       ← Agent soul, heartbeat, comms
 │   │   ├── webhooks/     ← Webhook CRUD + test + deliveries
 │   │   ├── integrations/ ← Integration CRUD
 │   │   ├── status/       ← System health endpoint
-│   │   ├── search/       ← Full-text search (tasks + agents)
+│   │   ├── search/       ← Full-text search (agents + pipeline leads)
 │   │   ├── memory/       ← Filesystem memory access
 │   │   └── logs/journal/ ← journalctl output
 │   └── layout.tsx
@@ -164,7 +163,7 @@ Mission Control has **dual data sources** — some pages read from Supabase, oth
 
 | Page | Primary Source | Notes |
 |------|---------------|-------|
-| Dashboard, Tasks, Agents | Supabase | Standard CRUD |
+| Dashboard, Agents, Pipeline | Supabase | Standard CRUD |
 | Sessions | Gateway API (`localhost:18789`) | Falls back to Supabase `agent_logs` |
 | Memory | Filesystem API (`/api/memory`) | Reads `~/.openclaw/workspace/` dirs |
 | Gateway | Gateway API (`localhost:18789/config`) | Read-only config viewer |
@@ -242,7 +241,7 @@ Agent statuses: `active`, `idle`, `built_not_calibrated`, `offline`
 21+ tables. All tables have UUID primary keys and `created_at`.
 
 **Core:** agents · agent_reports · agent_logs · heartbeats · agent_souls
-**Tasks:** tasks · task_comments · task_subscriptions · quality_reviews · projects
+**Pipeline:** pipeline_leads
 **Orchestration:** workflows · pipeline_runs · scheduled_tasks · standup_reports
 **Communication:** chat_conversations · chat_messages · agent_comms · notifications
 **External:** webhooks · webhook_deliveries · integrations · github_issues
@@ -344,4 +343,4 @@ After every implementation session, **update the relevant sections** of `docs/HE
 V7 replaced generic agent orchestration placeholders with the real Hermes commercial fleet:
 - 8 agents backed by OpenClaw runtime
 - Dual data sources: Supabase (structured data) + OpenClaw (sessions, cron, memory, gateway)
-- 20 sidebar nav items, task kanban centerpiece, full API layer
+- 19 sidebar nav items, pipeline as centerpiece, nerve center office, full API layer

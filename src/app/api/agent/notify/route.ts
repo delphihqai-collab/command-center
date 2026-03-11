@@ -19,17 +19,7 @@ export async function POST(req: NextRequest) {
 
   let prompt: string;
 
-  if (type === "task") {
-    const { data: task } = await supabase
-      .from("tasks")
-      .select("id, title, description, status, priority, labels")
-      .eq("id", id)
-      .single();
-
-    if (!task) return NextResponse.json({ error: "Task not found" }, { status: 404 });
-
-    prompt = `Boss assigned you a new task in Mission Control.\n\nTask ID: ${task.id}\nTitle: ${task.title}\nPriority: ${task.priority}\nStatus: ${task.status}\n${task.description ? `Description: ${task.description}\n` : ""}${message ? `Boss notes: ${message}\n` : ""}\nPick this up. Decide which agent(s) to involve, move the board, and deliver. Use the MC API to update task status as you work. You can move it up to "review" — only Boss can move to "done".`;
-  } else if (type === "pipeline") {
+  if (type === "pipeline") {
     const { data: lead } = await supabase
       .from("pipeline_leads")
       .select("id, company_name, contact_name, stage")
@@ -40,7 +30,7 @@ export async function POST(req: NextRequest) {
 
     prompt = `Boss wants you to work on a pipeline lead in Mission Control.\n\nLead ID: ${lead.id}\nCompany: ${lead.company_name}\nContact: ${lead.contact_name}\nStage: ${lead.stage}\n${message ? `Boss notes: ${message}\n` : ""}\nProgress this lead through the pipeline. Use the MC API to update the lead stage and data as you work.`;
   } else {
-    return NextResponse.json({ error: "Unknown type. Use 'task' or 'pipeline'." }, { status: 400 });
+    return NextResponse.json({ error: "Unknown type. Use 'pipeline'." }, { status: 400 });
   }
 
   try {
