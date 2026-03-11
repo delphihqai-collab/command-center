@@ -13,6 +13,7 @@ export default async function FleetPage() {
     { data: topology },
     { data: comms },
     { data: activeOps },
+    { data: chatActivity },
   ] = await Promise.all([
     supabase.from("agents").select("*").order("slug"),
     supabase
@@ -26,13 +27,19 @@ export default async function FleetPage() {
       .select("from_agent_id, to_agent_id")
       .order("created_at", { ascending: false })
       .limit(500),
-    // Get active operations per agent
     supabase
       .from("war_room_agents")
       .select(
         "agent_id, war_room:war_rooms!inner(id, name, status, type)"
       )
       .eq("war_rooms.status", "active"),
+    // Chat messages for Hermes chat
+    supabase
+      .from("war_room_activity")
+      .select("id, action, detail, created_at, agent:agents(slug, name)")
+      .in("action", ["user_message", "hermes_response"])
+      .order("created_at", { ascending: true })
+      .limit(50),
   ]);
 
   const agentsList = agents ?? [];
@@ -74,6 +81,7 @@ export default async function FleetPage() {
   return (
     <div className="space-y-6 p-6">
       <RealtimeRefresh table="agents" />
+      <RealtimeRefresh table="war_room_activity" />
 
       {/* Header */}
       <div>
@@ -108,6 +116,7 @@ export default async function FleetPage() {
           description: t.description ?? "",
         }))}
         commFrequency={commPairs}
+        chatMessages={chatActivity ?? []}
       />
     </div>
   );

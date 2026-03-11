@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
-import { HermesChat } from "./_components/hermes-chat";
 import { QuickActions } from "./_components/quick-actions";
 
 export const dynamic = "force-dynamic";
@@ -13,41 +12,23 @@ export const dynamic = "force-dynamic";
 export default async function CommandPage() {
   const supabase = await createClient();
 
-  const [{ data: chatActivity }, { data: operations }, { data: agents }] =
-    await Promise.all([
-      // Recent chat messages (user_message + hermes_response from all command operations)
-      supabase
-        .from("war_room_activity")
-        .select(
-          "id, action, detail, created_at, agent:agents(slug, name)"
-        )
-        .in("action", ["user_message", "hermes_response"])
-        .order("created_at", { ascending: true })
-        .limit(50),
-      // Recent operations
-      supabase
-        .from("war_rooms")
-        .select(
-          "id, name, status, priority, objective, type, created_at, resolved_at"
-        )
-        .neq("type", "core_pipeline")
-        .order("created_at", { ascending: false })
-        .limit(10),
-      // Agent list for quick actions
-      supabase
-        .from("agents")
-        .select("id, slug, name, type, status")
-        .order("slug"),
-    ]);
+  const [{ data: operations }] = await Promise.all([
+    supabase
+      .from("war_rooms")
+      .select(
+        "id, name, status, priority, objective, type, created_at, resolved_at"
+      )
+      .neq("type", "core_pipeline")
+      .order("created_at", { ascending: false })
+      .limit(10),
+  ]);
 
-  const chatMessages = chatActivity ?? [];
   const recentOps = operations ?? [];
   const activeOps = recentOps.filter((op) => op.status === "active");
 
   return (
     <div className="space-y-6 p-6">
       <RealtimeRefresh table="war_rooms" />
-      <RealtimeRefresh table="war_room_activity" />
 
       {/* Header */}
       <div>
@@ -56,7 +37,7 @@ export default async function CommandPage() {
           Command
         </h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Issue commands to Hermes and manage operations
+          Issue commands and manage operations
         </p>
       </div>
 
@@ -66,14 +47,6 @@ export default async function CommandPage() {
           Quick Actions
         </h2>
         <QuickActions />
-      </div>
-
-      {/* Hermes Chat */}
-      <div>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          Hermes
-        </h2>
-        <HermesChat initialMessages={chatMessages} />
       </div>
 
       {/* Recent Operations */}

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { LayoutGrid, Network } from "lucide-react";
+import { LayoutGrid, Network, MessageSquare } from "lucide-react";
 import { FleetGrid } from "./fleet-grid";
 import { TopologyVisualizer } from "../../office/_components/topology-visualizer";
+import { HermesChat } from "../../command/_components/hermes-chat";
 
 interface AgentNode {
   id: string;
@@ -26,13 +27,27 @@ interface DirectLink {
   description: string;
 }
 
+interface Activity {
+  id: string;
+  action: string;
+  detail: string | null;
+  created_at: string;
+  agent: { slug: string; name: string } | null;
+}
+
 interface Props {
   agents: AgentNode[];
   directLinks: DirectLink[];
   commFrequency: Record<string, number>;
+  chatMessages: Activity[];
 }
 
-export function FleetView({ agents, directLinks, commFrequency }: Props) {
+export function FleetView({
+  agents,
+  directLinks,
+  commFrequency,
+  chatMessages,
+}: Props) {
   const [view, setView] = useState<"grid" | "topology">("grid");
 
   return (
@@ -78,6 +93,15 @@ export function FleetView({ agents, directLinks, commFrequency }: Props) {
           commFrequency={commFrequency}
         />
       )}
+
+      {/* Hermes Chat */}
+      <div>
+        <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <MessageSquare className="h-3.5 w-3.5" />
+          Talk to Hermes
+        </h2>
+        <HermesChat initialMessages={chatMessages} />
+      </div>
     </>
   );
 }
