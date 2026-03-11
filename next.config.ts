@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
       { source: "/war-room", destination: "/command", permanent: true },
       { source: "/office", destination: "/fleet", permanent: true },
       { source: "/dashboard", destination: "/command", permanent: true },
+      { source: "/pipeline", destination: "/command", permanent: true },
     ];
   },
 };

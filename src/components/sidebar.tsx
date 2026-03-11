@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  Bot,
   Bell,
   DollarSign,
   Monitor,
@@ -17,7 +16,6 @@ import {
   Webhook,
   Clock,
   Plug,
-  GitBranchPlus,
   Crosshair,
   Activity,
   Users,
@@ -41,7 +39,6 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/command", label: "Command", icon: Crosshair },
       { href: "/operations", label: "Operations", icon: Activity },
-      { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
       { href: "/fleet", label: "Fleet", icon: Users },
     ],
   },
@@ -76,8 +73,8 @@ const navGroups: NavGroup[] = [
 const mobileNavItems = [
   { href: "/command", label: "Command", icon: Crosshair },
   { href: "/operations", label: "Ops", icon: Activity },
-  { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
   { href: "/fleet", label: "Fleet", icon: Users },
+  { href: "/sessions", label: "Sessions", icon: Monitor },
   { href: "/alerts", label: "Alerts", icon: Bell },
 ];
 

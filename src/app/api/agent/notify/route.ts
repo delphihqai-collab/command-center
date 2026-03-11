@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { stdout } = await execFileAsync("openclaw", [
+    const { stdout } = await execFileAsync("/home/delphi/.nvm/versions/node/v22.22.0/bin/openclaw", [
       "agent",
       "--agent", "main",
       "--message", prompt,

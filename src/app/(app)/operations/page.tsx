@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
+import { DeleteOperationButton } from "./_components/delete-operation";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function OperationsPage() {
     .select(
       "*, agents:war_room_agents(id, agent_id, role, agent:agents(id, slug, name, type, status)), activity:war_room_activity(id, agent_id, action, detail, created_at)"
     )
-    .neq("type", "core_pipeline")
+    .not("type", "in", '("core_pipeline","chat")')
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -118,9 +119,20 @@ function OperationCard({
       id: string;
       agent_id: string;
       role: string;
-      agent: { id: string; slug: string; name: string; type: string; status: string } | null;
+      agent: {
+        id: string;
+        slug: string;
+        name: string;
+        type: string;
+        status: string;
+      } | null;
     }[];
-    activity: { id: string; action: string; detail: string | null; created_at: string }[];
+    activity: {
+      id: string;
+      action: string;
+      detail: string | null;
+      created_at: string;
+    }[];
   };
 }) {
   const agentCount = op.agents?.length ?? 0;
@@ -129,80 +141,87 @@ function OperationCard({
   const isResolved = op.status === "resolved";
 
   return (
-    <Link href={`/operations/${op.id}`}>
-      <Card
-        className={`border-zinc-800 bg-zinc-900 transition-colors hover:border-zinc-700 ${
-          isResolved ? "opacity-70" : ""
-        }`}
-      >
-        <CardContent className="flex items-center gap-4 p-4">
-          <div
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-              isActive
-                ? "bg-indigo-950/40 text-indigo-400"
-                : isResolved
-                  ? "bg-emerald-950/40 text-emerald-400"
-                  : "bg-zinc-800 text-zinc-500"
-            }`}
-          >
-            {isResolved ? (
-              <CheckCircle2 className="h-4 w-4" />
-            ) : (
-              <Crosshair className="h-4 w-4" />
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium text-zinc-100">{op.name}</p>
-            {op.objective && (
-              <p className="truncate text-xs text-zinc-500">{op.objective}</p>
-            )}
-            <div className="mt-1 flex items-center gap-3 text-[10px] text-zinc-600">
-              {agentCount > 0 && (
-                <span>{agentCount} agent{agentCount > 1 ? "s" : ""}</span>
-              )}
-              {activityCount > 0 && (
-                <span>{activityCount} event{activityCount > 1 ? "s" : ""}</span>
+    <div className="flex items-center gap-2">
+      <Link href={`/operations/${op.id}`} className="min-w-0 flex-1">
+        <Card
+          className={`border-zinc-800 bg-zinc-900 transition-colors hover:border-zinc-700 ${
+            isResolved ? "opacity-70" : ""
+          }`}
+        >
+          <CardContent className="flex items-center gap-4 p-4">
+            <div
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                isActive
+                  ? "bg-indigo-950/40 text-indigo-400"
+                  : isResolved
+                    ? "bg-emerald-950/40 text-emerald-400"
+                    : "bg-zinc-800 text-zinc-500"
+              }`}
+            >
+              {isResolved ? (
+                <CheckCircle2 className="h-4 w-4" />
+              ) : (
+                <Crosshair className="h-4 w-4" />
               )}
             </div>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <div className="flex items-center gap-2">
-              {op.priority && op.priority !== "standard" && (
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-zinc-100">{op.name}</p>
+              {op.objective && (
+                <p className="truncate text-xs text-zinc-500">
+                  {op.objective}
+                </p>
+              )}
+              <div className="mt-1 flex items-center gap-3 text-[10px] text-zinc-600">
+                {agentCount > 0 && (
+                  <span>
+                    {agentCount} agent{agentCount > 1 ? "s" : ""}
+                  </span>
+                )}
+                {activityCount > 0 && (
+                  <span>
+                    {activityCount} event{activityCount > 1 ? "s" : ""}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-2">
+                {op.priority && op.priority !== "standard" && (
+                  <Badge
+                    variant="outline"
+                    className={
+                      op.priority === "critical"
+                        ? "border-red-700 text-red-400"
+                        : op.priority === "high"
+                          ? "border-amber-700 text-amber-400"
+                          : "border-zinc-700 text-zinc-400"
+                    }
+                  >
+                    {op.priority}
+                  </Badge>
+                )}
                 <Badge
                   variant="outline"
                   className={
-                    op.priority === "critical"
-                      ? "border-red-700 text-red-400"
-                      : op.priority === "high"
-                        ? "border-amber-700 text-amber-400"
-                        : "border-zinc-700 text-zinc-400"
+                    isActive
+                      ? "border-emerald-700 text-emerald-400"
+                      : "border-zinc-700 text-zinc-500"
                   }
                 >
-                  {op.priority}
+                  {op.status}
                 </Badge>
-              )}
-              <Badge
-                variant="outline"
-                className={
-                  isActive
-                    ? "border-emerald-700 text-emerald-400"
-                    : isResolved
-                      ? "border-zinc-700 text-zinc-500"
-                      : "border-zinc-700 text-zinc-500"
-                }
-              >
-                {op.status}
-              </Badge>
+              </div>
+              <span className="flex items-center gap-1 text-[10px] text-zinc-600">
+                <Clock className="h-2.5 w-2.5" />
+                {formatDistanceToNow(new Date(op.created_at), {
+                  addSuffix: true,
+                })}
+              </span>
             </div>
-            <span className="flex items-center gap-1 text-[10px] text-zinc-600">
-              <Clock className="h-2.5 w-2.5" />
-              {formatDistanceToNow(new Date(op.created_at), {
-                addSuffix: true,
-              })}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+          </CardContent>
+        </Card>
+      </Link>
+      <DeleteOperationButton operationId={op.id} operationName={op.name} />
+    </div>
   );
 }

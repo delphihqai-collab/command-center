@@ -18,7 +18,7 @@ export default async function CommandPage() {
       .select(
         "id, name, status, priority, objective, type, created_at, resolved_at"
       )
-      .neq("type", "core_pipeline")
+      .not("type", "in", '("core_pipeline","chat")')
       .order("created_at", { ascending: false })
       .limit(10),
   ]);

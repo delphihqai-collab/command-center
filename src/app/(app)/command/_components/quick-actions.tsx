@@ -27,7 +27,7 @@ interface QuickAction {
   color: string;
   needsInput: boolean;
   inputPlaceholder?: string;
-  defaultObjective: string;
+  defaultMessage: string;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
@@ -39,7 +39,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "text-sky-400 bg-sky-950/30 border-sky-800",
     needsInput: true,
     inputPlaceholder: "e.g. fintech companies in DACH region",
-    defaultObjective: "Find and qualify new leads matching ICP",
+    defaultMessage: "Find and qualify new leads matching ICP",
   },
   {
     id: "outreach-campaign",
@@ -48,7 +48,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     icon: Send,
     color: "text-purple-400 bg-purple-950/30 border-purple-800",
     needsInput: false,
-    defaultObjective:
+    defaultMessage:
       "Start outreach cadence for all approved leads in the review queue",
   },
   {
@@ -58,8 +58,8 @@ const QUICK_ACTIONS: QuickAction[] = [
     icon: Users,
     color: "text-emerald-400 bg-emerald-950/30 border-emerald-800",
     needsInput: false,
-    defaultObjective:
-      "Compile status update from all agents: current tasks, blockers, pipeline progress",
+    defaultMessage:
+      "Give me a status update from all agents: current tasks, blockers, pipeline progress",
   },
   {
     id: "research-company",
@@ -69,7 +69,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     color: "text-amber-400 bg-amber-950/30 border-amber-800",
     needsInput: true,
     inputPlaceholder: "e.g. Stripe, Datadog, Shopify",
-    defaultObjective:
+    defaultMessage:
       "Research company: size, tech stack, decision makers, pain points, ICP fit",
   },
   {
@@ -79,7 +79,7 @@ const QUICK_ACTIONS: QuickAction[] = [
     icon: FileText,
     color: "text-indigo-400 bg-indigo-950/30 border-indigo-800",
     needsInput: false,
-    defaultObjective:
+    defaultMessage:
       "Generate pipeline report: leads by stage, conversion rates, weekly trends, forecast",
   },
 ];
@@ -92,36 +92,28 @@ export function QuickActions() {
 
   function handleExecute(action: QuickAction, input?: string) {
     startTransition(async () => {
-      const objective = input
-        ? `${action.defaultObjective}: ${input}`
-        : action.defaultObjective;
+      const message = input
+        ? `${action.label}: ${input}`
+        : action.defaultMessage;
 
+      // Send as a chat message to Hermes — NOT as an operation
       const res = await fetch("/api/command/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: input
-            ? `${action.label}: ${input}`
-            : action.defaultObjective,
-        }),
+        body: JSON.stringify({ message }),
       });
 
       if (!res.ok) {
-        toast.error("Failed to create operation");
+        toast.error("Failed to send command");
         return;
       }
 
-      const data = await res.json();
-      toast.success(`Operation created: ${action.label}`);
+      toast.success(`Sent to Hermes: ${action.label}`);
       setActiveAction(null);
       setInputValue("");
 
-      // Navigate to the operation detail
-      if (data.operation_id) {
-        router.push(`/operations/${data.operation_id}`);
-      } else {
-        router.refresh();
-      }
+      // Navigate to Fleet to see the response in chat
+      router.push("/fleet");
     });
   }
 
@@ -184,7 +176,7 @@ export function QuickActions() {
               disabled={isPending || !inputValue.trim()}
               className="w-full bg-indigo-600 hover:bg-indigo-700"
             >
-              {isPending ? "Sending to Hermes..." : "Execute"}
+              {isPending ? "Sending to Hermes..." : "Send to Hermes"}
             </Button>
           </div>
         </DialogContent>
