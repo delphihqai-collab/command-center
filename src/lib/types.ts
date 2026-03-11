@@ -22,6 +22,12 @@ export type PipelineLead = Database["public"]["Tables"]["pipeline_leads"]["Row"]
 export type ReviewQueueItem = Database["public"]["Tables"]["review_queue"]["Row"];
 export type DailyTarget = Database["public"]["Tables"]["daily_targets"]["Row"];
 
+// ── V8 types ──────────────────────────────────────────────────────────
+export type OutreachSequence = Database["public"]["Tables"]["outreach_sequences"]["Row"];
+export type OutreachTemplate = Database["public"]["Tables"]["outreach_templates"]["Row"];
+export type DailyTarget = Database["public"]["Tables"]["daily_targets"]["Row"];
+export type ReviewQueueItem = Database["public"]["Tables"]["review_queue"]["Row"];
+
 // ── Shared utilities ──────────────────────────────────────────────────
 export type ServerActionResult<T = void> =
   | { success: true; data?: T }

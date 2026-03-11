@@ -57,6 +57,31 @@ export async function createLead(input: {
   return { success: true, data: { id: data.id } };
 }
 
+export async function reviewLead(
+  leadId: string,
+  decision: "approved" | "rejected",
+  notes?: string
+): Promise<ServerActionResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("pipeline_leads")
+    .update({
+      review_decision: decision,
+      reviewed_at: new Date().toISOString(),
+      stage: decision === "approved" ? "outreach" : "disqualified",
+      closed_at: decision === "rejected" ? new Date().toISOString() : null,
+    })
+    .eq("id", leadId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/pipeline");
+  revalidatePath("/war-room");
+  return { success: true };
+}
+
 export async function notifyHermes(
   type: "task" | "pipeline",
   id: string,

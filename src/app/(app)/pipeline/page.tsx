@@ -49,6 +49,23 @@ export default async function PipelinePage() {
         stageLabels={PIPELINE_STAGE_LABELS}
         agents={agents}
       />
+
+      {/* Terminal stage summary */}
+      {closedLeads.length > 0 && (
+        <div className="flex gap-4 rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+          {(["meeting_completed", "proposal_sent", "won", "lost", "disqualified"] as const).map((stage) => {
+            const count = leads.filter((l) => l.stage === stage).length;
+            if (count === 0) return null;
+            return (
+              <div key={stage} className="flex items-center gap-2">
+                <span className="text-xs text-zinc-500">{PIPELINE_STAGE_LABELS[stage]}:</span>
+                <span className="text-xs font-medium text-zinc-300">{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <RealtimeRefresh table="pipeline_leads" />
     </div>
   );

@@ -25,7 +25,7 @@ CREATE POLICY "Authenticated users can manage topology" ON team_topology
 -- Trigger for updated_at
 CREATE TRIGGER set_team_topology_updated_at
   BEFORE UPDATE ON team_topology
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION handle_updated_at();
 
 -- ── War rooms — multi-agent deal collaboration ────────────────────────
 CREATE TABLE IF NOT EXISTS war_rooms (
@@ -49,7 +49,7 @@ CREATE POLICY "Authenticated users can manage war rooms" ON war_rooms
 
 CREATE TRIGGER set_war_rooms_updated_at
   BEFORE UPDATE ON war_rooms
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION handle_updated_at();
 
 -- ── War room participants ─────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS war_room_agents (
@@ -108,7 +108,7 @@ CREATE POLICY "Authenticated users can manage agent pools" ON agent_pools
 
 CREATE TRIGGER set_agent_pools_updated_at
   BEFORE UPDATE ON agent_pools
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION handle_updated_at();
 
 -- ── Fleet optimization experiments ────────────────────────────────────
 CREATE TABLE IF NOT EXISTS fleet_experiments (
@@ -134,7 +134,7 @@ CREATE POLICY "Authenticated users can manage fleet experiments" ON fleet_experi
 
 CREATE TRIGGER set_fleet_experiments_updated_at
   BEFORE UPDATE ON fleet_experiments
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION handle_updated_at();
 
 -- ── Seed default topology: direct specialist access ───────────────────
 -- Allow workers to directly access specialists for operational queries

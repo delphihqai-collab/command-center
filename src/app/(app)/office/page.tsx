@@ -1,88 +1,91 @@
 import { createClient } from "@/lib/supabase/server";
-import { NerveCenter } from "./_components/nerve-center";
-import { Building2, Network } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { RealtimeRefresh } from "@/components/realtime-refresh";
+import { Network } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TopologyVisualizer } from "./_components/topology-visualizer";
 
-interface TopologyLink {
-  id: string;
-  from_agent: { slug: string } | null;
-  to_agent: { slug: string } | null;
-  description: string | null;
-}
+export const dynamic = "force-dynamic";
 
 export default async function OfficePage() {
   const supabase = await createClient();
 
-  const [agentsRes, heartbeatsRes, logsRes, topoRes] = await Promise.all([
-    supabase.from("agents").select("*").order("created_at", { ascending: true }),
-    supabase
-      .from("heartbeats")
-      .select("*")
-      .order("fired_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("agent_logs")
-      .select("*, agents!agent_logs_agent_id_fkey(name)")
-      .order("created_at", { ascending: false })
-      .limit(30),
+  const [
+    { data: agents },
+    { data: topology },
+    { data: comms },
+  ] = await Promise.all([
+    supabase.from("agents").select("id, slug, name, type, status").order("slug"),
     supabase
       .from("team_topology")
       .select(
-        "id, description, from_agent:agents!team_topology_from_agent_id_fkey(slug), to_agent:agents!team_topology_to_agent_id_fkey(slug)"
+        "*, from_agent:agents!team_topology_from_agent_id_fkey(id, slug, name, type), to_agent:agents!team_topology_to_agent_id_fkey(id, slug, name, type)"
       )
       .eq("enabled", true),
+    supabase
+      .from("agent_comms")
+      .select("from_agent_id, to_agent_id")
+      .order("created_at", { ascending: false })
+      .limit(500),
   ]);
 
-  const agents = agentsRes.data ?? [];
-  const heartbeats = heartbeatsRes.data ?? [];
-  const logs = logsRes.data ?? [];
-  const rawTopology = (topoRes.data ?? []) as unknown as TopologyLink[];
+  const agentsList = agents ?? [];
+  const topoLinks = (topology ?? []) as unknown as {
+    id: string;
+    from_agent: { id: string; slug: string; name: string; type: string } | null;
+    to_agent: { id: string; slug: string; name: string; type: string } | null;
+    channel_type: string;
+    description: string | null;
+  }[];
 
-  const directLinks = rawTopology.map((t) => ({
-    fromSlug: t.from_agent?.slug ?? "",
-    toSlug: t.to_agent?.slug ?? "",
-    description: t.description ?? "",
-  }));
-
-  const agentsWithMeta = agents.map((agent) => {
-    const latestHeartbeat = heartbeats.find(
-      (h) => h.job_name?.toLowerCase().includes(agent.slug)
-    );
-    const recentLogs = logs
-      .filter((l) => l.agent_id === agent.id)
-      .slice(0, 3);
-
-    return {
-      ...agent,
-      type: agent.type ?? "worker",
-      last_heartbeat_at: latestHeartbeat?.fired_at ?? null,
-      recentLogs,
-    };
-  });
-
-  const activeCount = agents.filter((a) => a.status === "active").length;
+  const commPairs: Record<string, number> = {};
+  for (const c of comms ?? []) {
+    const key = [c.from_agent_id, c.to_agent_id].sort().join("-");
+    commPairs[key] = (commPairs[key] ?? 0) + 1;
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Building2 className="h-5 w-5 text-zinc-400" />
-        <h1 className="text-2xl font-semibold text-zinc-50">The Office</h1>
-        <span className="text-sm text-zinc-500">
-          {activeCount} active · {agents.length} total
-        </span>
-        {directLinks.length > 0 && (
-          <Badge variant="outline" className="ml-2 border-cyan-800 text-cyan-400 text-[10px]">
-            <Network className="mr-1 h-3 w-3" />
-            {directLinks.length} P2P channels
-          </Badge>
-        )}
+    <div className="space-y-6 p-6">
+      <div>
+        <h1 className="flex items-center gap-3 text-2xl font-bold text-zinc-50">
+          <Network className="h-7 w-7 text-indigo-400" />
+          Office
+        </h1>
+        <p className="mt-1 text-sm text-zinc-400">
+          Fleet topology and communication visualization
+        </p>
       </div>
-      <p className="text-sm text-zinc-400">
-        Hybrid topology: Hermes orchestrates strategy. Agents communicate directly for operational tasks.
-      </p>
-      <RealtimeRefresh table="agents" />
-      <NerveCenter agents={agentsWithMeta} directLinks={directLinks} />
+
+      <Card className="border-zinc-800 bg-zinc-900">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base text-zinc-50">
+            <Network className="h-4 w-4 text-indigo-400" />
+            Communication Topology
+          </CardTitle>
+          <p className="text-xs text-zinc-500">
+            Hybrid architecture: hierarchical strategy through Hermes + peer-to-peer operational channels
+          </p>
+        </CardHeader>
+        <CardContent>
+          <TopologyVisualizer
+            agents={agentsList.map((a) => ({
+              id: a.id,
+              slug: a.slug,
+              name: a.name,
+              type: a.type,
+              status: a.status,
+            }))}
+            directLinks={topoLinks.map((t) => ({
+              id: t.id,
+              fromSlug: t.from_agent?.slug ?? "",
+              toSlug: t.to_agent?.slug ?? "",
+              fromName: t.from_agent?.name ?? "",
+              toName: t.to_agent?.name ?? "",
+              channelType: t.channel_type,
+              description: t.description ?? "",
+            }))}
+            commFrequency={commPairs}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

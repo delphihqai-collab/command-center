@@ -37,12 +37,14 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { name, lead_id, priority, objective, agent_ids } = body as {
+  const { name, lead_id, priority, objective, agent_ids, type, config } = body as {
     name: string;
     lead_id?: string;
     priority?: string;
     objective?: string;
     agent_ids?: string[];
+    type?: string;
+    config?: Record<string, unknown>;
   };
 
   if (!name) {
@@ -56,6 +58,8 @@ export async function POST(req: NextRequest) {
       lead_id: lead_id ?? null,
       priority: priority ?? "high",
       objective: objective ?? null,
+      type: type ?? "operation",
+      config: config ?? {},
     })
     .select()
     .single();

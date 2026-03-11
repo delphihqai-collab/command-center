@@ -22,5 +22,5 @@ export async function resolveAlert(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/alerts");
-  revalidatePath("/dashboard");
+  revalidatePath("/war-room");
 }
