@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  Building2,
   Bot,
   Bell,
   DollarSign,
@@ -43,7 +42,6 @@ const navGroups: NavGroup[] = [
       { href: "/agents", label: "Agents", icon: Bot },
       { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
       { href: "/sessions", label: "Sessions", icon: Monitor },
-      { href: "/office", label: "Office", icon: Building2 },
       { href: "/team-analysis", label: "Team Analysis", icon: Network },
       { href: "/war-room", label: "War Room", icon: Shield },
     ],
@@ -80,7 +78,7 @@ const mobileNavItems = [
   { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
   { href: "/agents", label: "Agents", icon: Bot },
   { href: "/alerts", label: "Alerts", icon: Bell },
-  { href: "/office", label: "Office", icon: Building2 },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar() {
