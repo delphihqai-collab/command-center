@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { moveLead } from "../actions";
 import { toast } from "sonner";
 import type { PipelineStage } from "@/lib/types";
-import { PIPELINE_STAGE_LABELS } from "@/lib/types";
+import { PIPELINE_STAGE_LABELS, TERMINAL_STAGES } from "@/lib/types";
 import { ArrowRight, X, Trophy } from "lucide-react";
 
 interface Props {
@@ -14,15 +14,16 @@ interface Props {
 }
 
 const stageOrder: PipelineStage[] = [
-  "new_lead", "sdr_qualification", "qualified", "discovery",
-  "proposal", "negotiation", "closed_won",
+  "discovery", "enrichment", "human_review", "outreach",
+  "engaged", "meeting_booked", "meeting_completed",
+  "proposal_sent", "won",
 ];
 
 export function StageActions({ leadId, currentStage }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const currentIndex = stageOrder.indexOf(currentStage);
-  const isClosed = ["closed_won", "closed_lost", "disqualified"].includes(currentStage);
+  const isClosed = TERMINAL_STAGES.includes(currentStage);
 
   function handleMove(stage: PipelineStage) {
     startTransition(async () => {
@@ -42,7 +43,7 @@ export function StageActions({ leadId, currentStage }: Props) {
     : null;
 
   return (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {nextStage && (
         <Button
           variant="outline"
@@ -58,17 +59,17 @@ export function StageActions({ leadId, currentStage }: Props) {
       <Button
         variant="outline"
         size="sm"
-        onClick={() => handleMove("closed_won")}
+        onClick={() => handleMove("won")}
         disabled={isPending}
         className="gap-1.5 border-emerald-800 text-emerald-400 hover:bg-emerald-950 hover:text-emerald-300"
       >
         <Trophy className="h-3.5 w-3.5" />
-        Closed Won
+        Won
       </Button>
       <Button
         variant="outline"
         size="sm"
-        onClick={() => handleMove("closed_lost")}
+        onClick={() => handleMove("lost")}
         disabled={isPending}
         className="gap-1.5 border-red-800 text-red-400 hover:bg-red-950 hover:text-red-300"
       >

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from "@/lib/types";
+import { ACTIVE_PIPELINE_STAGES, PIPELINE_STAGE_LABELS, TERMINAL_STAGES } from "@/lib/types";
 import type { PipelineStage } from "@/lib/types";
 import { PipelineBoard } from "./_components/pipeline-board";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
@@ -18,24 +18,19 @@ export default async function PipelinePage() {
   const leads = leadsRes.data ?? [];
   const agents = agentsRes.data ?? [];
 
-  const activeStages: PipelineStage[] = [
-    "new_lead", "sdr_qualification", "qualified", "discovery",
-    "proposal", "negotiation",
-  ];
-
   const closedLeads = leads.filter((l) =>
-    ["closed_won", "closed_lost", "disqualified"].includes(l.stage)
+    TERMINAL_STAGES.includes(l.stage as PipelineStage)
   );
 
   const columns = Object.fromEntries(
-    activeStages.map((stage) => [
+    ACTIVE_PIPELINE_STAGES.map((stage) => [
       stage,
       leads.filter((l) => l.stage === stage),
     ])
   );
 
   const totalValue = leads
-    .filter((l) => !["closed_lost", "disqualified"].includes(l.stage))
+    .filter((l) => !TERMINAL_STAGES.includes(l.stage as PipelineStage))
     .reduce((sum, l) => sum + (l.deal_value_eur ? Number(l.deal_value_eur) : 0), 0);
 
   return (

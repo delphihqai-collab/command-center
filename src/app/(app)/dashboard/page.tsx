@@ -14,6 +14,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { RealtimeRefresh } from "@/components/realtime-refresh";
+import { ACTIVE_PIPELINE_STAGES, PIPELINE_STAGE_LABELS, TERMINAL_STAGES } from "@/lib/types";
+import type { PipelineStage } from "@/lib/types";
 
 function CardSkeleton() {
   return <Skeleton className="h-40 w-full rounded-lg" />;
@@ -31,11 +33,11 @@ async function KPICards() {
       supabase
         .from("pipeline_leads")
         .select("id", { count: "exact", head: true })
-        .not("stage", "in", '("closed_won","closed_lost","disqualified")'),
+        .not("stage", "in", '("won","lost","disqualified")'),
       supabase
         .from("pipeline_leads")
         .select("deal_value_eur")
-        .not("stage", "in", '("closed_won","closed_lost","disqualified")'),
+        .not("stage", "in", '("won","lost","disqualified")'),
       supabase
         .from("agents")
         .select("id, status"),
@@ -128,7 +130,7 @@ async function RecentLeads() {
   const { data: leads } = await supabase
     .from("pipeline_leads")
     .select("id, company_name, stage, deal_value_eur, confidence, created_at, agents:assigned_agent_id(name)")
-    .not("stage", "in", '("closed_won","closed_lost","disqualified")')
+    .not("stage", "in", '("won","lost","disqualified")')
     .order("created_at", { ascending: false })
     .limit(10);
 
@@ -190,18 +192,21 @@ async function PipelineByStage() {
   const { data: leads } = await supabase
     .from("pipeline_leads")
     .select("stage, deal_value_eur")
-    .not("stage", "in", '("closed_won","closed_lost","disqualified")');
+    .not("stage", "in", '("won","lost","disqualified")');
 
   const items = leads ?? [];
 
-  const stages = [
-    { key: "new_lead", label: "New Lead", color: "bg-zinc-500" },
-    { key: "sdr_qualification", label: "SDR Qualification", color: "bg-amber-500" },
-    { key: "qualified", label: "Qualified", color: "bg-emerald-500" },
-    { key: "discovery", label: "Discovery", color: "bg-indigo-500" },
-    { key: "proposal", label: "Proposal", color: "bg-purple-500" },
-    { key: "negotiation", label: "Negotiation", color: "bg-orange-500" },
-  ];
+  const stages = ACTIVE_PIPELINE_STAGES.map((key) => ({
+    key,
+    label: PIPELINE_STAGE_LABELS[key],
+    color:
+      key === "discovery" ? "bg-sky-500" :
+      key === "enrichment" ? "bg-indigo-500" :
+      key === "human_review" ? "bg-amber-500" :
+      key === "outreach" ? "bg-purple-500" :
+      key === "engaged" ? "bg-emerald-500" :
+      "bg-emerald-400",
+  }));
 
   return (
     <Card className="border-zinc-800 bg-zinc-900">

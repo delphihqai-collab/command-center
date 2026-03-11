@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import type { ServerActionResult, PipelineStage } from "@/lib/types";
+import { TERMINAL_STAGES } from "@/lib/types";
 
 export async function moveLead(
   leadId: string,
@@ -12,7 +13,7 @@ export async function moveLead(
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { success: false, error: "Unauthorized" };
 
-  const closedAt = ["closed_won", "closed_lost", "disqualified"].includes(newStage)
+  const closedAt = TERMINAL_STAGES.includes(newStage)
     ? new Date().toISOString()
     : null;
 
@@ -23,6 +24,7 @@ export async function moveLead(
 
   if (error) return { success: false, error: error.message };
   revalidatePath("/pipeline");
+  revalidatePath("/war-room");
   return { success: true };
 }
 
@@ -45,7 +47,7 @@ export async function createLead(input: {
       contact_email: input.contact_email ?? null,
       contact_role: input.contact_role ?? null,
       source: input.source ?? "manual",
-      stage: "new_lead",
+      stage: "discovery",
     })
     .select("id")
     .single();
@@ -64,7 +66,7 @@ export async function notifyHermes(
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { success: false, error: "Unauthorized" };
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL ? "" : ""}http://localhost:9069/api/agent/notify`, {
+  const res = await fetch("http://localhost:9069/api/agent/notify", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ type, id, message }),

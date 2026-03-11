@@ -99,16 +99,16 @@ export function WarRoomCreateButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-red-600 text-sm hover:bg-red-700">
+        <Button className="gap-2 bg-indigo-600 text-sm hover:bg-indigo-700">
           <Plus className="h-4 w-4" />
-          New War Room
+          New Operation
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg border-zinc-800 bg-zinc-950">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-zinc-50">
-            <Shield className="h-5 w-5 text-red-400" />
-            Activate War Room
+            <Shield className="h-5 w-5 text-indigo-400" />
+            New Operation
           </DialogTitle>
         </DialogHeader>
 
@@ -225,10 +225,10 @@ export function WarRoomCreateButton({
           <Button
             onClick={handleCreate}
             disabled={isPending || !name.trim()}
-            className="w-full gap-2 bg-red-600 hover:bg-red-700"
+            className="w-full gap-2 bg-indigo-600 hover:bg-indigo-700"
           >
             <Shield className="h-4 w-4" />
-            {isPending ? "Activating..." : "Activate War Room"}
+            {isPending ? "Creating..." : "Create Operation"}
           </Button>
         </div>
       </DialogContent>

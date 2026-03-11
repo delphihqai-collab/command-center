@@ -86,14 +86,14 @@ function generateInsights(
     stageDistribution[lead.stage] = (stageDistribution[lead.stage] ?? 0) + 1;
   }
 
-  const qualificationLeads = (stageDistribution["sdr_qualification"] ?? 0);
+  const enrichmentLeads = (stageDistribution["enrichment"] ?? 0);
   const discoveryLeads = (stageDistribution["discovery"] ?? 0);
 
-  if (qualificationLeads > leads.length * 0.4 && leads.length > 3) {
+  if (enrichmentLeads > leads.length * 0.4 && leads.length > 3) {
     insights.push({
       type: "optimization",
-      title: "Pipeline bottleneck at SDR qualification",
-      detail: `${qualificationLeads} of ${leads.length} leads (${Math.round((qualificationLeads / leads.length) * 100)}%) stuck in qualification. Consider enabling SDR pool scaling.`,
+      title: "Pipeline bottleneck at enrichment",
+      detail: `${enrichmentLeads} of ${leads.length} leads (${Math.round((enrichmentLeads / leads.length) * 100)}%) stuck in enrichment. Consider enabling SDR pool scaling.`,
       impact: "high",
       category: "Pipeline",
     });

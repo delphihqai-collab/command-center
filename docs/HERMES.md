@@ -131,9 +131,9 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 **Agent Detail** (`/agents/[slug]`) — Full agent profile. Shows: slug, type, model, last_seen, capabilities. Sections: identity card, **workspace file editor** (tabbed, all config files with Preview/Code toggle), 10 recent reports, 50 action logs, 10 assigned pipeline leads, 10 recent comms.
 
-**Pipeline** (`/pipeline`) — The centerpiece. Commercial pipeline board. 6 active stage columns: New Lead → SDR Qualification → Qualified → Discovery → Proposal → Negotiation. Each lead card shows: company name, contact, deal value (EUR), confidence %, assigned agent, time since creation. Header shows total pipeline value and lead count. Click through to lead detail.
+**Pipeline** (`/pipeline`) — The sales funnel board. 6 active stage columns: Discovery → Enrichment → Review → Outreach → Engaged → Meeting Booked. Each lead card shows: company name, contact, deal value (EUR), confidence %, assigned agent, time since update. Header shows total pipeline value and lead count. Click through to lead detail. Terminal stages (Won, Lost, Disqualified) are tracked but not displayed as board columns.
 
-**Pipeline Detail** (`/pipeline/[id]`) — Single lead view. Company info, contact details, SDR brief (full markdown), discovery notes, metadata (sector, location, BANT score, compliance). Stage action buttons: Move Forward, Closed Won, Lost, Disqualify. "Send to Hermes" button triggers OpenClaw to process the lead through the next pipeline stage.
+**Pipeline Detail** (`/pipeline/[id]`) — Single lead view. Company info, contact details, enrichment data (industry, employee count, ICP score, trigger event), SDR brief, discovery notes. Stage action buttons: Move Forward, Won, Lost, Disqualify. "Send to Hermes" button triggers OpenClaw to process the lead through the next pipeline stage.
 
 **Sessions** (`/sessions`) — Live session monitor. Fetches data via `openclaw sessions --all-agents --json` CLI. Shows per session: agent name, session key, kind (direct/group with color-coded badges), model name, context usage (progress bar — green < 50%, amber < 80%, red > 80%), last activity (relative time), estimated cost (from `model-costs.ts`). Multiple sessions per agent visible (main + cron). Child `:run:` sessions (per-execution cron runs) are filtered out to reduce noise — only the parent cron session is shown.
 
@@ -147,11 +147,13 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - **Elastic Agent Pools:** Visual gauge cards showing pool configurations. Each pool has a base agent, min/max instances, current instances, and scaling strategy (manual, load-based, or pipeline-volume). Progress bars show utilization.
 - **Direct Channel Registry:** Full list of peer-to-peer operational links with descriptions.
 
-**War Room** (`/war-room`) — Multi-agent deal collaboration. Instead of sequential pipeline handoffs (SDR→AE→AM), war rooms pull all relevant agents into simultaneous collaboration on high-value deals. Features:
-- KPI cards: active rooms, deal value under collaboration, agents involved, resolved count
-- Create dialog: name, linked pipeline deal, priority (critical/high/standard), objective, agent team selection (first selected = lead)
-- Room cards: show linked deal, agent team with role badges (lead/participant/observer), activity feed, timestamps
-- Supports active, resolved, and archived states
+**War Room** (`/war-room`) — Delphi's command center. The primary operations interface. Has two sections:
+- **Quick Actions (5 buttons):** Find Leads (discover companies in a sector), Launch Outreach (start outreach cadence), Team Status (get all-agent update), Research Company (deep-dive analysis), Pipeline Report (performance overview). Each creates an operation that the team can pick up.
+- **Today's Pipeline KPIs:** Daily targets vs actuals — leads found, emails sent, LinkedIn touches, replies received, meetings booked. Progress bars show on-track status.
+- **Review Queue:** Leads in `human_review` stage waiting for Delphi's approve/reject decision. Shows ICP score, industry, trigger event.
+- **Pipeline Funnel:** Horizontal bar chart — leads at each stage (Discovery through Won).
+- **Upcoming Meetings:** Leads with `meeting_booked` stage and future meeting dates.
+- **Operations:** Active and completed custom operations. Create dialog: name, linked deal, priority, objective, agent selection.
 
 ### Observe
 
@@ -206,12 +208,12 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - `GET /api/search` — Full-text search across agents + pipeline leads (min 2 chars)
 
 ### Agent API (for Hermes + sub-agents)
-- `GET/POST/PATCH /api/agent/pipeline` — Pipeline lead CRUD. Auth via `Authorization: Bearer <AGENT_API_KEY>`. Agents cannot move leads to `closed_won`, `closed_lost`, or `disqualified` (403). Stage order: new_lead → sdr_qualification → qualified → discovery → proposal → negotiation → closed_won/closed_lost/disqualified
+- `GET/POST/PATCH /api/agent/pipeline` — Pipeline lead CRUD. Auth via `Authorization: Bearer <AGENT_API_KEY>`. Agents cannot move leads to `won` or `lost` (403 — only humans can close deals). Agents CAN disqualify. Stage order: discovery → enrichment → human_review → outreach → engaged → meeting_booked → meeting_completed → proposal_sent → won/lost/disqualified. POST accepts enrichment fields: icp_score, industry, employee_count, trigger_event.
 - `POST /api/agent/notify` — Human-triggered. Sends a contextual prompt to Hermes via `openclaw agent`. Used by "Send to Hermes" button on pipeline detail page. Only supports `type: "pipeline"`
 
 ---
 
-## Database — 25 Tables
+## Database — 27 Tables
 
 ### Core
 - **`agents`** — The 8 of you. slug, name, type, status, model, workspace_path, last_seen, capabilities
@@ -222,7 +224,9 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - **`heartbeats`** — Cron job fire history
 
 ### Pipeline
-- **`pipeline_leads`** — The centerpiece table. Commercial pipeline tracking. 9 stages (new_lead through closed_won/closed_lost/disqualified). Fields: company_name, contact_name, contact_email, contact_role, source, stage, assigned_agent_id, deal_value_eur, confidence, sdr_brief, discovery_notes, proposal_url, lost_reason, metadata (JSONB)
+- **`pipeline_leads`** — The centerpiece table. Commercial pipeline tracking. 11 stages: discovery → enrichment → human_review → outreach → engaged → meeting_booked → meeting_completed → proposal_sent → won → lost → disqualified. Core fields: company_name, contact_name, contact_email, contact_role, source, stage, assigned_agent_id, deal_value_eur, confidence, sdr_brief, discovery_notes, proposal_url, lost_reason, metadata (JSONB). Enrichment fields: icp_score, industry, employee_count, annual_revenue_eur, website, linkedin_url, trigger_event, enrichment_data (JSONB). Outreach fields: outreach_step, outreach_total_steps, last_contacted_at. Meeting fields: meeting_date, meeting_brief_url.
+- **`review_queue`** — Items waiting for Delphi's decision. Types: lead_review, reply_review. Statuses: pending, approved, rejected, needs_info.
+- **`daily_targets`** — Daily pipeline targets and actuals. Per-date record with leads_target, leads_actual, outreach_target, outreach_actual, emails_target, emails_actual, linkedin_target, linkedin_actual, replies_actual, meetings_target, meetings_actual.
 
 ### Webhooks & Integrations
 - **`webhooks`** — Outbound webhooks with HMAC signing and failure tracking
@@ -237,7 +241,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 ### Team Organization
 - **`team_topology`** — Peer-to-peer communication channels between agents. Defines which agents can talk directly for operational queries (bypassing Hermes routing). Channel types: operational, strategic, escalation
-- **`war_rooms`** — Multi-agent deal collaboration rooms. Linked to pipeline leads. Statuses: active, resolved, archived. Priority: critical, high, standard
+- **`war_rooms`** — Operations and pipeline command. Types: core_pipeline (singleton, always-on pipeline dashboard) and operation (ad-hoc tasks). Linked to pipeline leads. Statuses: active, resolved, archived. Priority: critical, high, standard. Config (JSONB) stores target settings for core_pipeline type.
 - **`war_room_agents`** — War room participants. Roles: lead, participant, observer
 - **`war_room_activity`** — Activity log within war rooms
 - **`agent_pools`** — Elastic scaling configuration. Defines capability pools (SDR, AE, MI) with min/max instances and scaling strategy (manual, load_based, pipeline_volume)
@@ -274,10 +278,13 @@ src/
 │   │   │       ├── optimization-insights.tsx ← AI-generated recommendations
 │   │   │       ├── pools-panel.tsx          ← Elastic agent pool gauges
 │   │   │       └── experiments-panel.tsx     ← Fleet experiment tracker
-│   │   ├── war-room/         Multi-agent deal collaboration
+│   │   ├── war-room/         Command center — pipeline targets + operations
 │   │   │   └── _components/
-│   │   │       ├── war-room-card.tsx   ← Room card with team + activity
-│   │   │       └── war-room-create.tsx ← Create dialog with agent selection
+│   │   │       ├── pipeline-targets.tsx ← KPI cards with target vs actual
+│   │   │       ├── pipeline-funnel.tsx  ← Horizontal stage funnel chart
+│   │   │       ├── quick-actions.tsx    ← 5 boss quick-action buttons
+│   │   │       ├── war-room-card.tsx    ← Operation card with team + activity
+│   │   │       └── war-room-create.tsx  ← Create operation dialog
 │   │   ├── costs/            Token/cost tracking (OpenClaw data)
 │   │   │   └── _components/
 │   │   │       ├── cost-chart.tsx
@@ -346,12 +353,12 @@ Desktop sidebar (56px collapsed width), 4 groups:
 
 | Group | Items | Icons |
 |-------|-------|-------|
-| *(core)* | Overview · Agents · Pipeline · Sessions · Office · Team Analysis · War Room | Dashboard · Bot · GitBranchPlus · Monitor · Building · Network · Shield |
-| **Observe** | Logs · Tokens · Memory | Scroll · Dollar · Brain |
-| **Automate** | Cron · Webhooks · Alerts | Clock · Webhook · Bell |
-| **Admin** | Audit · Gateways · Integrations · Settings | Clipboard · Server · Plug · Settings |
+| **Operate** | War Room · Pipeline · Agents | Crosshair · GitBranchPlus · Bot |
+| **Monitor** | Office · Sessions · Tokens · Logs | Building · Monitor · Dollar · Scroll |
+| **Configure** | Cron · Memory · Webhooks · Alerts | Clock · Brain · Webhook · Bell |
+| **Admin** | Audit · Gateway · Integrations · Settings | Clipboard · Server · Plug · Settings |
 
-Mobile bottom nav: Dashboard, Pipeline, Agents, Alerts, Office (5 quick links)
+Mobile bottom nav: Command, Pipeline, Agents, Office, Alerts (5 quick links)
 
 ---
 

@@ -11,7 +11,7 @@ export async function GET() {
     supabase
       .from("pipeline_leads")
       .select("id, stage")
-      .not("stage", "in", '("closed_won","closed_lost","disqualified")'),
+      .not("stage", "in", '("won","lost","disqualified")'),
     supabase.from("alert_events").select("id").eq("resolved", false),
   ]);
 

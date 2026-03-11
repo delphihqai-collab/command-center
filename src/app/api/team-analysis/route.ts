@@ -52,7 +52,7 @@ export async function GET() {
     supabase
       .from("pipeline_leads")
       .select("id, stage, deal_value_eur, assigned_agent_id, created_at, closed_at")
-      .not("stage", "in", "(closed_lost,disqualified)"),
+      .not("stage", "in", "(lost,disqualified)"),
   ]);
 
   if (agentsErr || topoErr || wrErr || poolsErr || expErr || commsErr || leadsErr) {

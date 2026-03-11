@@ -108,7 +108,7 @@ export default async function TeamAnalysisPage() {
     supabase
       .from("pipeline_leads")
       .select("stage, deal_value_eur, assigned_agent_id")
-      .not("stage", "in", "(closed_won,closed_lost,disqualified)"),
+      .not("stage", "in", "(won,lost,disqualified)"),
   ]);
 
   if (agentsErr || topoErr) {

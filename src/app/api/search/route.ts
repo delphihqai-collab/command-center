@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       .from("pipeline_leads")
       .select("id, company_name, stage")
       .ilike("company_name", `%${q}%`)
-      .not("stage", "in", '("closed_won","closed_lost","disqualified")')
+      .not("stage", "in", '("won","lost","disqualified")')
       .limit(5),
   ]);
 

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  LayoutDashboard,
   Building2,
   Bot,
   Bell,
@@ -20,8 +19,7 @@ import {
   Clock,
   Plug,
   GitBranchPlus,
-  Network,
-  Shield,
+  Crosshair,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 
@@ -38,28 +36,27 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
+    label: "OPERATE",
     items: [
-      { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
-      { href: "/agents", label: "Agents", icon: Bot },
+      { href: "/war-room", label: "War Room", icon: Crosshair },
       { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
-      { href: "/sessions", label: "Sessions", icon: Monitor },
-      { href: "/office", label: "Office", icon: Building2 },
-      { href: "/team-analysis", label: "Team Analysis", icon: Network },
-      { href: "/war-room", label: "War Room", icon: Shield },
+      { href: "/agents", label: "Agents", icon: Bot },
     ],
   },
   {
-    label: "OBSERVE",
+    label: "MONITOR",
     items: [
-      { href: "/logs", label: "Logs", icon: ScrollText },
+      { href: "/office", label: "Office", icon: Building2 },
+      { href: "/sessions", label: "Sessions", icon: Monitor },
       { href: "/costs", label: "Tokens", icon: DollarSign },
-      { href: "/memory", label: "Memory", icon: Brain },
+      { href: "/logs", label: "Logs", icon: ScrollText },
     ],
   },
   {
-    label: "AUTOMATE",
+    label: "CONFIGURE",
     items: [
       { href: "/cron", label: "Cron", icon: Clock },
+      { href: "/memory", label: "Memory", icon: Brain },
       { href: "/webhooks", label: "Webhooks", icon: Webhook },
       { href: "/alerts", label: "Alerts", icon: Bell },
     ],
@@ -68,7 +65,7 @@ const navGroups: NavGroup[] = [
     label: "ADMIN",
     items: [
       { href: "/audit-log", label: "Audit", icon: ClipboardList },
-      { href: "/gateway", label: "Gateways", icon: Server },
+      { href: "/gateway", label: "Gateway", icon: Server },
       { href: "/integrations", label: "Integrations", icon: Plug },
       { href: "/settings", label: "Settings", icon: Settings },
     ],
@@ -76,11 +73,11 @@ const navGroups: NavGroup[] = [
 ];
 
 const mobileNavItems = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/war-room", label: "Command", icon: Crosshair },
   { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
   { href: "/agents", label: "Agents", icon: Bot },
-  { href: "/alerts", label: "Alerts", icon: Bell },
   { href: "/office", label: "Office", icon: Building2 },
+  { href: "/alerts", label: "Alerts", icon: Bell },
 ];
 
 export function Sidebar() {
@@ -91,7 +88,7 @@ export function Sidebar() {
       {/* Desktop sidebar */}
       <aside className="hidden h-screen w-56 flex-col border-r border-zinc-800 bg-zinc-950 md:flex">
         <div className="flex h-14 items-center border-b border-zinc-800 px-4">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/war-room" className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600">
               <span className="text-xs font-bold text-white">MC</span>
             </div>

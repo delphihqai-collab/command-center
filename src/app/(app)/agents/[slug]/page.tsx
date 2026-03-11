@@ -39,7 +39,7 @@ export default async function AgentDetailPage({ params }: Props) {
       .from("pipeline_leads")
       .select("id, company_name, stage, deal_value_eur, updated_at")
       .eq("assigned_agent_id", agent.id)
-      .not("stage", "in", '("closed_won","closed_lost","disqualified")')
+      .not("stage", "in", '("won","lost","disqualified")')
       .order("updated_at", { ascending: false })
       .limit(10),
     supabase

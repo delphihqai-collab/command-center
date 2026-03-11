@@ -10,12 +10,12 @@ interface Props {
 }
 
 const stageColors: Record<string, string> = {
-  new_lead: "bg-zinc-500",
-  sdr_qualification: "bg-amber-500",
-  qualified: "bg-emerald-500",
-  discovery: "bg-indigo-500",
-  proposal: "bg-purple-500",
-  negotiation: "bg-orange-500",
+  discovery: "bg-sky-500",
+  enrichment: "bg-indigo-500",
+  human_review: "bg-amber-500",
+  outreach: "bg-purple-500",
+  engaged: "bg-emerald-500",
+  meeting_booked: "bg-emerald-400",
 };
 
 export function PipelineBoard({ columns, stageLabels, agents }: Props) {

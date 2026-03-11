@@ -39,12 +39,16 @@ export async function POST(req: NextRequest) {
       contact_email: body.contact_email ?? null,
       contact_role: body.contact_role ?? null,
       source: body.source ?? "inbound",
-      stage: body.stage ?? "new_lead",
+      stage: body.stage ?? "discovery",
       assigned_agent_id: body.assigned_agent_id ?? null,
       deal_value_eur: body.deal_value_eur ?? null,
       confidence: body.confidence ?? null,
       sdr_brief: body.sdr_brief ?? null,
       discovery_notes: body.discovery_notes ?? null,
+      icp_score: body.icp_score ?? null,
+      industry: body.industry ?? null,
+      employee_count: body.employee_count ?? null,
+      trigger_event: body.trigger_event ?? null,
       metadata: body.metadata ?? {},
     })
     .select()
@@ -66,7 +70,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Missing lead id" }, { status: 400 });
   }
 
-  // Agents cannot close deals — only humans can
+  // Agents cannot close deals — only humans can mark won/lost
   if (body.stage && !AGENT_ALLOWED_STAGES.includes(body.stage as PipelineStage)) {
     return NextResponse.json(
       { error: `Agents cannot move leads to '${body.stage}'. Only humans can close deals.` },
