@@ -61,10 +61,10 @@ export default async function AgentDetailPage({ params }: Props) {
       {/* Header */}
       <div>
         <Link
-          href="/agents"
+          href="/fleet"
           className="text-sm text-zinc-400 hover:text-zinc-50"
         >
-          ← Agents
+          ← Fleet
         </Link>
         <div className="mt-2 flex items-center gap-3">
           <h1 className="text-2xl font-semibold text-zinc-50">{agent.name}</h1>

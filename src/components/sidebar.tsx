@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
-  Building2,
   Bot,
   Bell,
   DollarSign,
@@ -20,6 +19,8 @@ import {
   Plug,
   GitBranchPlus,
   Crosshair,
+  Activity,
+  Users,
 } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
 
@@ -38,15 +39,15 @@ const navGroups: NavGroup[] = [
   {
     label: "OPERATE",
     items: [
-      { href: "/war-room", label: "War Room", icon: Crosshair },
+      { href: "/command", label: "Command", icon: Crosshair },
+      { href: "/operations", label: "Operations", icon: Activity },
       { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
-      { href: "/agents", label: "Agents", icon: Bot },
+      { href: "/fleet", label: "Fleet", icon: Users },
     ],
   },
   {
     label: "MONITOR",
     items: [
-      { href: "/office", label: "Office", icon: Building2 },
       { href: "/sessions", label: "Sessions", icon: Monitor },
       { href: "/costs", label: "Tokens", icon: DollarSign },
       { href: "/logs", label: "Logs", icon: ScrollText },
@@ -73,10 +74,10 @@ const navGroups: NavGroup[] = [
 ];
 
 const mobileNavItems = [
-  { href: "/war-room", label: "Command", icon: Crosshair },
+  { href: "/command", label: "Command", icon: Crosshair },
+  { href: "/operations", label: "Ops", icon: Activity },
   { href: "/pipeline", label: "Pipeline", icon: GitBranchPlus },
-  { href: "/agents", label: "Agents", icon: Bot },
-  { href: "/office", label: "Office", icon: Building2 },
+  { href: "/fleet", label: "Fleet", icon: Users },
   { href: "/alerts", label: "Alerts", icon: Bell },
 ];
 
@@ -88,7 +89,7 @@ export function Sidebar() {
       {/* Desktop sidebar */}
       <aside className="hidden h-screen w-56 flex-col border-r border-zinc-800 bg-zinc-950 md:flex">
         <div className="flex h-14 items-center border-b border-zinc-800 px-4">
-          <Link href="/war-room" className="flex items-center gap-2">
+          <Link href="/command" className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-600">
               <span className="text-xs font-bold text-white">MC</span>
             </div>

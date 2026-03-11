@@ -12,9 +12,9 @@ You don't interact with Mission Control directly. You interact with OpenClaw. Bu
 
 ### Communication Hierarchy — Hybrid Topology
 
-**Strategic layer: Delphi → Hermes → Sub-agents.** Delphi only communicates with you (Hermes). Strategic decisions, escalations, and human communication route through you.
+**Strategic layer: Delphi → Hermes → Sub-agents.** Delphi communicates with you (Hermes) through Mission Control's Command page or Discord. Commands sent from the Command page are delivered via `openclaw agent --agent main --message "..." --json`. All commands and responses are logged as `war_room_activity` entries for full visibility.
 
-**Operational layer: Peer-to-peer channels.** Workers can query specialists directly for operational tasks without routing through Hermes. For example, the AE can ask Legal for a contract review directly, or the SDR can query Market Intelligence for prospect research. These direct channels are defined in the `team_topology` table and visualized on the Office page.
+**Operational layer: Peer-to-peer channels.** Workers can query specialists directly for operational tasks without routing through Hermes. For example, the AE can ask Legal for a contract review directly, or the SDR can query Market Intelligence for prospect research. These direct channels are defined in the `team_topology` table and visualized on the Fleet page.
 
 ---
 
@@ -105,8 +105,9 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 | Page | Primary Source | Notes |
 |------|---------------|-------|
-| War Room, Agents, Pipeline, Templates | Supabase | Standard CRUD |
-| Office | Supabase | Topology visualization, agent comms |
+| Command, Operations, Pipeline, Fleet, Templates | Supabase | Standard CRUD |
+| Command chat | Supabase + OpenClaw CLI | Messages via `openclaw agent`, logged in `war_room_activity` |
+| Fleet (Topology) | Supabase | `team_topology` + `agent_comms` for visualization |
 | Sessions | OpenClaw CLI (`openclaw sessions`) | Supabase `agents` table for metadata fallback |
 | Memory | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/*/memory/` |
 | Workspace Files | Filesystem (`/api/agents/[id]/workspace`) | Reads/writes SOUL.md, IDENTITY.md, etc. |
@@ -124,54 +125,34 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 ### OPERATE
 
-**War Room** (`/war-room`) — Pipeline Command Center. Delphi's daily command interface with two tabs:
-- **Pipeline Command tab:** Daily targets (leads, outreach, meetings, revenue with progress bars), review queue (approve/reject leads pending human review with ICP/intent scores), pipeline funnel (horizontal bar chart of leads per stage), upcoming meetings
-- **Operations tab:** Create and manage multi-agent deal collaboration rooms. Instead of sequential pipeline handoffs, war rooms pull all relevant agents into simultaneous collaboration on high-value deals. Supports active, resolved, and archived states.
+**Command** (`/command`) — Delphi's primary interface. Three sections:
+- **Quick Actions (5 buttons):** Find Leads, Launch Outreach, Team Status, Research Company, Pipeline Report. Each sends the command to Hermes via OpenClaw CLI and creates an operation with full activity tracking. After execution, navigates to the operation detail page.
+- **Hermes Chat:** Direct chat with Hermes through the website. Messages are sent via `POST /api/command/send` which calls `openclaw agent --agent main --message "..."`. Both user messages and Hermes responses are logged as `war_room_activity` entries (action: `user_message` / `hermes_response`). Chat shows full history with realtime updates.
+- **Recent Operations:** Compact list of recent operations with status badges, linking to the Operations detail page.
 
-**Pipeline** (`/pipeline`) — The centerpiece. Commercial pipeline board. 6 visible stage columns: Discovery → Enrichment → Human Review → Outreach → Engaged → Meeting Booked. Terminal stage summary row below showing Meeting Completed, Proposal Sent, Won, Lost, Disqualified counts. Stage-conditional card rendering: enrichment shows ICP score + industry; outreach shows sequence progress; engaged shows reply sentiment; meeting_booked shows date. Header shows total pipeline value and lead count. Click through to lead detail.
+**Operations** (`/operations`) — All operations (war rooms) grouped by status: active, completed, other. Each card shows name, objective, assigned agent count, activity event count, priority badge, and age. Click any operation to see its detail page.
 
-**Pipeline Detail** (`/pipeline/[id]`) — Single lead view. Includes:
-- Company profile card (enrichment data: industry, size, revenue, location, website, LinkedIn, tech stack)
-- ICP + intent score gauges
-- Trigger event section
-- Outreach timeline (visual sequence steps with status icons)
-- Meeting prep section (if applicable)
-- Human review card (approve/reject inline for leads in human_review stage)
-- SDR brief, discovery notes, metadata
-- Stage action buttons: Move Forward, Won, Lost, Disqualify
-- "Send to Hermes" button triggers OpenClaw to process the lead
+**Operations Detail** (`/operations/[id]`) — Full operation view with:
+- Header with name, objective, status, priority
+- Linked pipeline lead (if any) with deal value
+- Assigned agents with role badges
+- Activity timeline: chronological list of all events — user commands, Hermes responses, agent actions, system events. Each entry shows actor (You/agent name/System), timestamp, action badge, and detail text.
 
-**Pipeline stages (V8):** `discovery` → `enrichment` → `human_review` → `outreach` → `engaged` → `meeting_booked` → `meeting_completed` → `proposal_sent` → `won` / `lost` / `disqualified`
+**Pipeline** (`/pipeline`) — Commercial pipeline board. 6 visible stage columns: Discovery → Enrichment → Human Review → Outreach → Engaged → Meeting Booked. Terminal stage summary row below. Stage-conditional card rendering. Header shows total pipeline value and lead count.
 
-**Agents** (`/agents`) — Grid of all 8 agents. Cards show: name, type badge, model, slug, status. Click through to detail page.
+**Pipeline Detail** (`/pipeline/[id]`) — Single lead view with enrichment data, outreach timeline, review actions, stage transitions, and "Send to Hermes" button.
 
-**Agent Detail** (`/agents/[slug]`) — Full agent profile. Shows: slug, type, model, last_seen, capabilities. Sections: identity card, workspace file editor (tabbed, all config files with Preview/Code toggle), 10 recent reports, 50 action logs, 10 assigned pipeline leads, 10 recent comms.
+**Pipeline stages:** `discovery` → `enrichment` → `human_review` → `outreach` → `engaged` → `meeting_booked` → `meeting_completed` → `proposal_sent` → `won` / `lost` / `disqualified`
 
-**Pipeline** (`/pipeline`) — The sales funnel board. 6 active stage columns: Discovery → Enrichment → Review → Outreach → Engaged → Meeting Booked. Each lead card shows: company name, contact, deal value (EUR), confidence %, assigned agent, time since update. Header shows total pipeline value and lead count. Click through to lead detail. Terminal stages (Won, Lost, Disqualified) are tracked but not displayed as board columns.
+**Fleet** (`/fleet`) — Merged agents + office page with Grid/Topology toggle:
+- **Grid view:** Agent cards showing emoji, name, type, status badge, model, last seen, and active operations. Operations link directly to `/operations/[id]`.
+- **Topology view:** Interactive SVG hub-and-spoke visualization with Hermes at center, 7 sub-agents in a ring. Shows hierarchical connections (solid) + peer-to-peer direct channels (dashed cyan curves). Animated pulses, hover tooltips, status dots.
 
-**Pipeline Detail** (`/pipeline/[id]`) — Single lead view. Company info, contact details, enrichment data (industry, employee count, ICP score, trigger event), SDR brief, discovery notes. Stage action buttons: Move Forward, Won, Lost, Disqualify. "Send to Hermes" button triggers OpenClaw to process the lead through the next pipeline stage.
+**Agent Detail** (`/agents/[slug]`) — Full agent profile. Identity card, workspace file editor (tabbed with Preview/Code toggle), pipeline leads, comms, reports, activity log. Back link goes to `/fleet`.
 
-**Sessions** (`/sessions`) — Live session monitor. Fetches data via `openclaw sessions --all-agents --json` CLI. Shows per session: agent name, session key, kind, model, context usage (progress bar), last activity, estimated cost.
+### MONITOR
 
-**Office** (`/office`) — Nerve center visualization. Hub-and-spoke layout with Hermes at the center and all 7 sub-agents arranged in a circle. Shows the hybrid topology: solid lines for hierarchical Hermes connections + dashed cyan curves for peer-to-peer direct channels between workers and specialists. Active agents show pulsing connections with animated light dots. Badge shows count of P2P channels. Each agent node shows emoji, name, and status dot. Click any agent to open a detail sheet.
-
-**Team Analysis** (`/team-analysis`) — Fleet intelligence and organizational optimization dashboard. Shows:
-- **KPI cards:** Direct channels count, active war rooms, pipeline metrics, running experiments, pool scaling status
-- **Topology Visualizer:** Interactive SVG showing the hybrid architecture — hierarchical layer (Hermes hub) + peer-to-peer layer (direct specialist channels). Hover agents to see their connections. Animated pulses flow on direct channels.
-- **Optimization Insights:** AI-generated recommendations based on fleet topology, pipeline distribution, and communication patterns. Analyzes bottlenecks, specialist utilization, scaling opportunities, and the knowledge feedback loop.
-- **Fleet Experiments:** Machine-speed A/B testing panel. Track experiments for outreach templates, qualification criteria, negotiation strategies. Categories: outreach, qualification, negotiation, retention, process, topology.
-- **Elastic Agent Pools:** Visual gauge cards showing pool configurations. Each pool has a base agent, min/max instances, current instances, and scaling strategy (manual, load-based, or pipeline-volume). Progress bars show utilization.
-- **Direct Channel Registry:** Full list of peer-to-peer operational links with descriptions.
-
-**War Room** (`/war-room`) — Delphi's command center. The primary operations interface. Has two sections:
-- **Quick Actions (5 buttons):** Find Leads (discover companies in a sector), Launch Outreach (start outreach cadence), Team Status (get all-agent update), Research Company (deep-dive analysis), Pipeline Report (performance overview). Each creates an operation that the team can pick up.
-- **Today's Pipeline KPIs:** Daily targets vs actuals — leads found, emails sent, LinkedIn touches, replies received, meetings booked. Progress bars show on-track status.
-- **Review Queue:** Leads in `human_review` stage waiting for Delphi's approve/reject decision. Shows ICP score, industry, trigger event.
-- **Pipeline Funnel:** Horizontal bar chart — leads at each stage (Discovery through Won).
-- **Upcoming Meetings:** Leads with `meeting_booked` stage and future meeting dates.
-- **Operations:** Active and completed custom operations. Create dialog: name, linked deal, priority, objective, agent selection.
-
-### Observe
+**Sessions** (`/sessions`) — Live session monitor via `openclaw sessions --all-agents --json`. Shows agent, session key, model, context usage, cost.
 
 **Logs** (`/logs`) — Unified log viewer. Agent selectable from dropdown. Fetches from `agent_logs` (Supabase) + journal entries via `/api/logs/journal`.
 
@@ -226,6 +207,9 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 ### Sequences
 - `GET /api/sequences/[leadId]` — Outreach steps for a lead (with template joins)
+
+### Command
+- `POST /api/command/send` — Send a command to Hermes via OpenClaw CLI. Creates a war_room operation (type: "command"), logs user message + Hermes response as `war_room_activity` entries. Returns operation_id + response text.
 
 ### War Rooms
 - `GET/POST /api/war-rooms` — List/create war rooms with agent assignments, linked deals, type, and config
@@ -293,52 +277,28 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 src/
 ├── app/
 │   ├── (app)/              ← Protected routes (require auth)
-│   │   ├── war-room/         Pipeline Command Center (default route)
+│   │   ├── command/          Command center — chat with Hermes + quick actions
 │   │   │   └── _components/
-│   │   │       ├── war-room-tabs.tsx       ← Pipeline Command / Operations tabs
-│   │   │       ├── review-queue.tsx        ← Approve/reject review cards
-│   │   │       ├── pipeline-targets.tsx    ← Daily targets KPI row
-│   │   │       ├── pipeline-funnel.tsx     ← Horizontal bar chart funnel
-│   │   │       ├── upcoming-meetings.tsx   ← Meeting schedule list
-│   │   │       ├── operations-list.tsx     ← Active + resolved operations
-│   │   │       ├── create-operation.tsx    ← New operation dialog
-│   │   │       ├── war-room-card.tsx       ← Room card with team + activity
-│   │   │       └── war-room-create.tsx     ← Legacy create dialog
+│   │   │       ├── hermes-chat.tsx    ← Real-time chat with Hermes via OpenClaw
+│   │   │       └── quick-actions.tsx  ← 5 quick-action buttons → Hermes
+│   │   ├── operations/       Operation list + detail pages
+│   │   │   └── [id]/page.tsx          ← Per-operation activity timeline
 │   │   ├── pipeline/         Commercial pipeline board (6 stage columns)
+│   │   │   └── _components/  ← Board, cards, enrichment, sequences, review, stage actions
+│   │   ├── fleet/            Unified agent overview (merged agents + office)
 │   │   │   └── _components/
-│   │   │       ├── pipeline-board.tsx      ← Stage columns with lead cards
-│   │   │       ├── pipeline-card.tsx       ← Lead card (stage-conditional rendering)
-│   │   │       ├── enrichment-card.tsx     ← Company enrichment data display
-│   │   │       ├── sequence-timeline.tsx   ← Outreach step timeline
-│   │   │       ├── lead-review-card.tsx    ← Inline approve/reject for human_review
-│   │   │       ├── notify-hermes-button.tsx ← "Send to Hermes" trigger
-│   │   │       └── stage-actions.tsx       ← Move forward, close, disqualify
-│   │   ├── agents/           Agent fleet grid
+│   │   │       ├── fleet-view.tsx     ← Grid/Topology toggle wrapper
+│   │   │       └── fleet-grid.tsx     ← Agent cards with operations
+│   │   ├── agents/           Agent list (accessible via fleet)
 │   │   ├── agents/[slug]/    Agent detail + workspace editor
-│   │   ├── office/           Fleet topology visualization
-│   │   │   └── _components/
-│   │   │       └── topology-visualizer.tsx ← Interactive hybrid topology SVG
-│   │   ├── templates/        Outreach template CRUD
-│   │   │   └── _components/
-│   │   │       └── nerve-center.tsx  ← SVG hub-and-spoke + P2P channels
-│   │   ├── team-analysis/    Fleet intelligence + org optimization
-│   │   │   └── _components/
-│   │   │       ├── topology-visualizer.tsx  ← Interactive hybrid topology SVG
-│   │   │       ├── optimization-insights.tsx ← AI-generated recommendations
-│   │   │       ├── pools-panel.tsx          ← Elastic agent pool gauges
-│   │   │       └── experiments-panel.tsx     ← Fleet experiment tracker
-│   │   ├── war-room/         Command center — pipeline targets + operations
-│   │   │   └── _components/
-│   │   │       ├── pipeline-targets.tsx ← KPI cards with target vs actual
-│   │   │       ├── pipeline-funnel.tsx  ← Horizontal stage funnel chart
-│   │   │       ├── quick-actions.tsx    ← 5 boss quick-action buttons
-│   │   │       ├── war-room-card.tsx    ← Operation card with team + activity
-│   │   │       └── war-room-create.tsx  ← Create operation dialog
-│   │   ├── costs/            Token/cost tracking (OpenClaw data)
+│   │   ├── office/           Topology visualizer (reused by fleet)
+│   │   ├── war-room/         Legacy (redirects to /command)
+│   │   ├── costs/            Token/cost tracking
 │   │   ├── sessions/         Session monitoring (OpenClaw CLI)
 │   │   ├── memory/           Memory file browser (filesystem)
 │   │   ├── logs/             Unified log viewer
-│   │   ├── cron/             Scheduled task management (OpenClaw CLI)
+│   │   ├── cron/             Scheduled task management
+│   │   ├── templates/        Outreach template CRUD
 │   │   ├── alerts/           Alert rules + events
 │   │   ├── webhooks/         Webhook CRUD + delivery history
 │   │   ├── integrations/     Third-party connections
@@ -347,6 +307,7 @@ src/
 │   │   └── settings/         App settings
 │   ├── (auth)/             ← Login page + server actions
 │   └── api/                ← Route handlers
+│       ├── command/send/     Send chat message to Hermes via OpenClaw CLI
 │       ├── agent/            Agent API (pipeline, notify) — Bearer token auth
 │       ├── agents/           Agent detail, workspace files, soul, heartbeat, comms
 │       ├── review-queue/     Review queue CRUD + decision processing
@@ -376,30 +337,32 @@ src/
 │   ├── supabase/admin.ts     Admin client (agent API only)
 │   ├── agent-auth.ts         Agent API key validation
 │   ├── database.types.ts     Auto-generated types (never edit manually)
-│   ├── types.ts              Type aliases + pipeline stages + V8 types
+│   ├── types.ts              Type aliases + pipeline stages
 │   ├── memory-paths.ts       Agent slug → filesystem memory directory map
 │   ├── model-costs.ts        Token cost rates per model
 │   ├── schemas.ts            Zod validation schemas
 │   ├── pagination.ts         Cursor-based pagination helpers
 │   └── utils.ts              cn() class name merger
-├── middleware.ts            ← Auth guard + /dashboard → /war-room redirect
-└── globals.css
+├── middleware.ts            ← Auth guard + login redirect to /command
+└── globals.css             ← Tailwind v4 + cursor:pointer on all interactive elements
 ```
 
 ---
 
 ## Sidebar Navigation
 
-Desktop sidebar (56px collapsed width), 4 groups:
+Desktop sidebar (w-56), 4 groups:
 
 | Group | Items | Icons |
 |-------|-------|-------|
-| **Operate** | War Room · Pipeline · Agents | Crosshair · GitBranchPlus · Bot |
-| **Monitor** | Office · Sessions · Tokens · Logs | Building · Monitor · Dollar · Scroll |
+| **Operate** | Command · Operations · Pipeline · Fleet | Crosshair · Activity · GitBranchPlus · Users |
+| **Monitor** | Sessions · Tokens · Logs | Monitor · Dollar · Scroll |
 | **Configure** | Cron · Memory · Webhooks · Alerts | Clock · Brain · Webhook · Bell |
 | **Admin** | Audit · Gateway · Integrations · Settings | Clipboard · Server · Plug · Settings |
 
-Mobile bottom nav: Command, Pipeline, Agents, Office, Alerts (5 quick links)
+Mobile bottom nav: Command, Ops, Pipeline, Fleet, Alerts (5 quick links)
+
+**Redirects:** `/war-room` → `/command`, `/office` → `/fleet`, `/dashboard` → `/command`
 
 ---
 
