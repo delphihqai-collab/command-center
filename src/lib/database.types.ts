@@ -1,4 +1,3 @@
-Connecting to db.bplgfzymyinggwebvcqv.supabase.co 5432
 export type Json =
   | string
   | number

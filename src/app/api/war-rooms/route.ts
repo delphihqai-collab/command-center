@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       priority: priority ?? "high",
       objective: objective ?? null,
       type: type ?? "operation",
-      config: config ?? {},
+      config: (config ?? {}) as Record<string, string | number>,
     })
     .select()
     .single();
