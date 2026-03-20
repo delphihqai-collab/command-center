@@ -6,12 +6,14 @@ import { PIPELINE_STAGE_LABELS } from "@/lib/types";
 import type { PipelineStage } from "@/lib/types";
 import Link from "next/link";
 import { format, formatDistanceToNow } from "date-fns";
-import { FileDown } from "lucide-react";
+import { FileDown, Globe, Bot, Thermometer } from "lucide-react";
 import { NotifyHermesButton } from "../_components/notify-hermes-button";
 import { StageActions } from "../_components/stage-actions";
 import { EnrichmentCard } from "../_components/enrichment-card";
 import { SequenceTimeline } from "../_components/sequence-timeline";
 import { LeadReviewCard } from "../_components/lead-review-card";
+import { LEAD_TEMPERATURE_LABELS, LEAD_TEMPERATURE_COLORS } from "@/lib/types";
+import type { LeadTemperature } from "@/lib/types";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -65,6 +67,104 @@ export default async function PipelineDetailPage({ params }: Props) {
       {/* Review Card (shown if in human_review with pending review) */}
       {lead.stage === "human_review" && (
         <LeadReviewCard leadId={lead.id} reviewId={reviewItem?.id ?? null} />
+      )}
+
+      {/* Atlas Delivery Card (shown for atlas_build / product_ready stages) */}
+      {(lead.atlas_website_url || lead.atlas_chatbot_url || lead.stage === "atlas_build") && (
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-zinc-400">
+              Atlas Delivery
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              {lead.product_type && (
+                <div>
+                  <p className="text-xs text-zinc-500">Product Type</p>
+                  <p className="text-sm capitalize text-zinc-50">
+                    {lead.product_type === "both" ? "Website + Chatbot" : lead.product_type}
+                  </p>
+                </div>
+              )}
+              {lead.atlas_brief_sent_at && (
+                <div>
+                  <p className="text-xs text-zinc-500">Brief Sent</p>
+                  <p className="text-sm text-zinc-400">
+                    {format(new Date(lead.atlas_brief_sent_at), "dd MMM yyyy HH:mm")}
+                  </p>
+                </div>
+              )}
+              {lead.atlas_delivered_at && (
+                <div>
+                  <p className="text-xs text-zinc-500">Delivered</p>
+                  <p className="text-sm text-emerald-400">
+                    {format(new Date(lead.atlas_delivered_at), "dd MMM yyyy HH:mm")}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              {lead.atlas_website_url && (
+                <a
+                  href={lead.atlas_website_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-sky-950 px-3 py-1.5 text-sm font-medium text-sky-400 hover:bg-sky-900"
+                >
+                  <Globe className="h-4 w-4" />
+                  Demo Website
+                </a>
+              )}
+              {lead.atlas_chatbot_url && (
+                <a
+                  href={lead.atlas_chatbot_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md bg-violet-950 px-3 py-1.5 text-sm font-medium text-violet-400 hover:bg-violet-900"
+                >
+                  <Bot className="h-4 w-4" />
+                  Demo Chatbot
+                </a>
+              )}
+              {lead.stage === "atlas_build" && !lead.atlas_website_url && !lead.atlas_chatbot_url && (
+                <p className="text-sm text-amber-400">
+                  ⏳ Build in progress — waiting for Atlas delivery
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Engagement Card (shown when lead has temperature or engagement score) */}
+      {(lead.lead_temperature || lead.engagement_score) && (
+        <Card className="border-zinc-800 bg-zinc-900">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-sm font-medium text-zinc-400">
+              <Thermometer className="h-4 w-4" />
+              Engagement
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              {lead.lead_temperature && (
+                <div>
+                  <p className="text-xs text-zinc-500">Temperature</p>
+                  <span className={`mt-1 inline-block rounded px-2 py-0.5 text-sm font-medium ${LEAD_TEMPERATURE_COLORS[lead.lead_temperature as LeadTemperature] ?? ""}`}>
+                    {LEAD_TEMPERATURE_LABELS[lead.lead_temperature as LeadTemperature] ?? lead.lead_temperature}
+                  </span>
+                </div>
+              )}
+              {lead.engagement_score != null && lead.engagement_score > 0 && (
+                <div>
+                  <p className="text-xs text-zinc-500">Engagement Score</p>
+                  <span className="mt-1 text-2xl font-bold text-indigo-400">{lead.engagement_score}</span>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Actions */}

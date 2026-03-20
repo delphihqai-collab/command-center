@@ -14,9 +14,9 @@ interface Props {
 }
 
 const stageOrder: PipelineStage[] = [
-  "discovery", "enrichment", "human_review", "outreach",
-  "engaged", "meeting_booked", "meeting_completed",
-  "proposal_sent", "won",
+  "discovery", "enrichment", "atlas_build", "product_ready",
+  "human_review", "outreach", "engaged", "meeting_booked",
+  "meeting_completed", "proposal_sent", "won",
 ];
 
 export function StageActions({ leadId, currentStage }: Props) {

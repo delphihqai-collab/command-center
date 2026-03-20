@@ -105,3 +105,73 @@ export async function notifyHermes(
   const data = await res.json();
   return { success: true, data: { response: data.response } };
 }
+
+export async function requestAtlasBuild(
+  leadId: string,
+  productType: "website" | "chatbot" | "both"
+): Promise<ServerActionResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("pipeline_leads")
+    .update({
+      stage: "atlas_build",
+      product_type: productType,
+      atlas_brief_sent_at: new Date().toISOString(),
+    })
+    .eq("id", leadId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/pipeline");
+  return { success: true };
+}
+
+export async function recordAtlasDelivery(
+  leadId: string,
+  websiteUrl: string | null,
+  chatbotUrl: string | null
+): Promise<ServerActionResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: "Unauthorized" };
+
+  const { error } = await supabase
+    .from("pipeline_leads")
+    .update({
+      stage: "product_ready",
+      atlas_website_url: websiteUrl,
+      atlas_chatbot_url: chatbotUrl,
+      atlas_delivered_at: new Date().toISOString(),
+    })
+    .eq("id", leadId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/pipeline");
+  return { success: true };
+}
+
+export async function updateLeadTemperature(
+  leadId: string,
+  temperature: "cold" | "warm" | "hot" | "on_fire",
+  engagementScore?: number
+): Promise<ServerActionResult> {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: "Unauthorized" };
+
+  const update: Record<string, unknown> = { lead_temperature: temperature };
+  if (engagementScore !== undefined) {
+    update.engagement_score = engagementScore;
+  }
+
+  const { error } = await supabase
+    .from("pipeline_leads")
+    .update(update)
+    .eq("id", leadId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath("/pipeline");
+  return { success: true };
+}

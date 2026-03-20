@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { PipelineLead } from "@/lib/types";
+import type { LeadTemperature } from "@/lib/types";
+import { LEAD_TEMPERATURE_COLORS, LEAD_TEMPERATURE_LABELS } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
+import { Globe, Bot } from "lucide-react";
 
 interface Props {
   lead: PipelineLead & { assigned_agent: { id: string; name: string; slug: string } | null };
@@ -31,6 +34,27 @@ export function PipelineCard({ lead }: Props) {
           )}
         </div>
       )}
+      {lead.stage === "atlas_build" && (
+        <div className="mt-1.5">
+          <span className="rounded bg-purple-950 px-1.5 py-0.5 text-[10px] font-medium text-purple-400">
+            ⏳ Building {lead.product_type === "both" ? "website + chatbot" : lead.product_type ?? "product"}
+          </span>
+        </div>
+      )}
+      {lead.stage === "product_ready" && (
+        <div className="mt-1.5 flex items-center gap-1.5">
+          {lead.atlas_website_url && (
+            <span className="inline-flex items-center gap-0.5 rounded bg-sky-950 px-1.5 py-0.5 text-[10px] font-medium text-sky-400">
+              <Globe className="h-2.5 w-2.5" /> Site
+            </span>
+          )}
+          {lead.atlas_chatbot_url && (
+            <span className="inline-flex items-center gap-0.5 rounded bg-violet-950 px-1.5 py-0.5 text-[10px] font-medium text-violet-400">
+              <Bot className="h-2.5 w-2.5" /> Bot
+            </span>
+          )}
+        </div>
+      )}
       {lead.stage === "outreach" && lead.sequence_step != null && (
         <div className="mt-1.5">
           <span className="rounded bg-indigo-950 px-1.5 py-0.5 text-[10px] font-medium text-indigo-400">
@@ -58,6 +82,11 @@ export function PipelineCard({ lead }: Props) {
       )}
 
       <div className="mt-2 flex items-center gap-2">
+        {lead.lead_temperature && lead.lead_temperature !== "cold" && (
+          <span className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${LEAD_TEMPERATURE_COLORS[lead.lead_temperature as LeadTemperature] ?? ""}`}>
+            {LEAD_TEMPERATURE_LABELS[lead.lead_temperature as LeadTemperature] ?? lead.lead_temperature}
+          </span>
+        )}
         {lead.deal_value_eur && (
           <span className="rounded bg-emerald-950 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
             €{Number(lead.deal_value_eur).toLocaleString("en")}

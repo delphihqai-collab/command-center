@@ -29,17 +29,19 @@ export type ServerActionResult<T = void> =
   | { success: true; data?: T }
   | { success: false; error: string };
 
-// V8 Pipeline Stages
+// V9 Pipeline Stages — product-led outreach
 export const PIPELINE_STAGES = [
-  "discovery", "enrichment", "human_review", "outreach",
-  "engaged", "meeting_booked", "meeting_completed",
-  "proposal_sent", "won", "lost", "disqualified",
+  "discovery", "enrichment", "atlas_build", "product_ready",
+  "human_review", "outreach", "engaged", "meeting_booked",
+  "meeting_completed", "proposal_sent", "won", "lost", "disqualified",
 ] as const;
 export type PipelineStage = (typeof PIPELINE_STAGES)[number];
 
 export const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
   discovery: "Discovery",
   enrichment: "Enrichment",
+  atlas_build: "Atlas Build",
+  product_ready: "Product Ready",
   human_review: "Review",
   outreach: "Outreach",
   engaged: "Engaged",
@@ -53,8 +55,8 @@ export const PIPELINE_STAGE_LABELS: Record<PipelineStage, string> = {
 
 /** Active pipeline stages shown on the kanban board. */
 export const ACTIVE_PIPELINE_STAGES: readonly PipelineStage[] = [
-  "discovery", "enrichment", "human_review", "outreach",
-  "engaged", "meeting_booked",
+  "discovery", "enrichment", "atlas_build", "product_ready",
+  "human_review", "outreach", "engaged", "meeting_booked",
 ] as const;
 
 /** Terminal stages — deal has ended. */
@@ -64,7 +66,24 @@ export const TERMINAL_STAGES: readonly PipelineStage[] = [
 
 /** Stages agents can move leads to. Agents cannot mark won/lost — only humans. */
 export const AGENT_ALLOWED_STAGES: readonly PipelineStage[] = [
-  "discovery", "enrichment", "human_review", "outreach",
-  "engaged", "meeting_booked", "meeting_completed",
-  "proposal_sent", "disqualified",
+  "discovery", "enrichment", "atlas_build", "product_ready",
+  "human_review", "outreach", "engaged", "meeting_booked",
+  "meeting_completed", "proposal_sent", "disqualified",
 ] as const;
+
+/** Lead temperature based on engagement scoring. */
+export type LeadTemperature = "cold" | "warm" | "hot" | "on_fire";
+
+export const LEAD_TEMPERATURE_LABELS: Record<LeadTemperature, string> = {
+  cold: "Cold",
+  warm: "Warm",
+  hot: "Hot",
+  on_fire: "On Fire",
+};
+
+export const LEAD_TEMPERATURE_COLORS: Record<LeadTemperature, string> = {
+  cold: "bg-zinc-800 text-zinc-400",
+  warm: "bg-amber-950 text-amber-400",
+  hot: "bg-red-950 text-red-400",
+  on_fire: "bg-emerald-950 text-emerald-400",
+};

@@ -757,6 +757,10 @@ export type Database = {
         Row: {
           annual_revenue_eur: number | null
           assigned_agent_id: string | null
+          atlas_brief_sent_at: string | null
+          atlas_chatbot_url: string | null
+          atlas_delivered_at: string | null
+          atlas_website_url: string | null
           channel: string | null
           closed_at: string | null
           company_industry: string | null
@@ -777,6 +781,7 @@ export type Database = {
           email_clicks: number | null
           email_opens: number | null
           employee_count: number | null
+          engagement_score: number | null
           enrichment_data: Json | null
           icp_score: number | null
           id: string
@@ -784,6 +789,7 @@ export type Database = {
           intent_score: number | null
           last_contacted_at: string | null
           last_touch_at: string | null
+          lead_temperature: string | null
           linkedin_url: string | null
           lost_reason: string | null
           meeting_brief_url: string | null
@@ -795,6 +801,7 @@ export type Database = {
           outreach_status: string | null
           outreach_step: number | null
           outreach_total_steps: number | null
+          product_type: string | null
           proposal_url: string | null
           re_engage_after: string | null
           reply_sentiment: string | null
@@ -813,6 +820,10 @@ export type Database = {
         Insert: {
           annual_revenue_eur?: number | null
           assigned_agent_id?: string | null
+          atlas_brief_sent_at?: string | null
+          atlas_chatbot_url?: string | null
+          atlas_delivered_at?: string | null
+          atlas_website_url?: string | null
           channel?: string | null
           closed_at?: string | null
           company_industry?: string | null
@@ -833,6 +844,7 @@ export type Database = {
           email_clicks?: number | null
           email_opens?: number | null
           employee_count?: number | null
+          engagement_score?: number | null
           enrichment_data?: Json | null
           icp_score?: number | null
           id?: string
@@ -840,6 +852,7 @@ export type Database = {
           intent_score?: number | null
           last_contacted_at?: string | null
           last_touch_at?: string | null
+          lead_temperature?: string | null
           linkedin_url?: string | null
           lost_reason?: string | null
           meeting_brief_url?: string | null
@@ -851,6 +864,7 @@ export type Database = {
           outreach_status?: string | null
           outreach_step?: number | null
           outreach_total_steps?: number | null
+          product_type?: string | null
           proposal_url?: string | null
           re_engage_after?: string | null
           reply_sentiment?: string | null
@@ -869,6 +883,10 @@ export type Database = {
         Update: {
           annual_revenue_eur?: number | null
           assigned_agent_id?: string | null
+          atlas_brief_sent_at?: string | null
+          atlas_chatbot_url?: string | null
+          atlas_delivered_at?: string | null
+          atlas_website_url?: string | null
           channel?: string | null
           closed_at?: string | null
           company_industry?: string | null
@@ -889,6 +907,7 @@ export type Database = {
           email_clicks?: number | null
           email_opens?: number | null
           employee_count?: number | null
+          engagement_score?: number | null
           enrichment_data?: Json | null
           icp_score?: number | null
           id?: string
@@ -896,6 +915,7 @@ export type Database = {
           intent_score?: number | null
           last_contacted_at?: string | null
           last_touch_at?: string | null
+          lead_temperature?: string | null
           linkedin_url?: string | null
           lost_reason?: string | null
           meeting_brief_url?: string | null
@@ -907,6 +927,7 @@ export type Database = {
           outreach_status?: string | null
           outreach_step?: number | null
           outreach_total_steps?: number | null
+          product_type?: string | null
           proposal_url?: string | null
           re_engage_after?: string | null
           reply_sentiment?: string | null

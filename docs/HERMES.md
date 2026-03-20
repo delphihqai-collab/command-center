@@ -126,7 +126,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 ### OPERATE
 
 **Command** (`/command`) — Delphi's primary interface. Three sections:
-- **Quick Actions (5 buttons):** Find Leads, Launch Outreach, Team Status, Research Company, Pipeline Report. Each sends the command to Hermes via OpenClaw CLI and creates an operation with full activity tracking. After execution, navigates to the operation detail page.
+- **Quick Actions (9 buttons in 4 groups):** Prospecting (Find Companies, Research Company), Build (Request Atlas Build, Atlas Status), Outreach (Compose Outreach, Launch Outreach), Monitor (Pipeline Report, Team Status, Engagement Report). Each sends the command to Hermes via OpenClaw CLI. After execution, navigates to the Fleet page.
 - **Hermes Chat:** Direct chat with Hermes through the website. Messages are sent via `POST /api/command/send` which calls `openclaw agent --agent main --message "..."`. Both user messages and Hermes responses are logged as `war_room_activity` entries (action: `user_message` / `hermes_response`). Chat shows full history with realtime updates.
 - **Recent Operations:** Compact list of recent operations with status badges, linking to the Operations detail page.
 
@@ -138,11 +138,11 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - Assigned agents with role badges
 - Activity timeline: chronological list of all events — user commands, Hermes responses, agent actions, system events. Each entry shows actor (You/agent name/System), timestamp, action badge, and detail text.
 
-**Pipeline** (`/pipeline`) — Commercial pipeline board. 6 visible stage columns: Discovery → Enrichment → Human Review → Outreach → Engaged → Meeting Booked. Terminal stage summary row below. Stage-conditional card rendering. Header shows total pipeline value and lead count.
+**Pipeline** (`/pipeline`) — Commercial pipeline board. 8 visible stage columns: Discovery → Enrichment → Atlas Build → Product Ready → Human Review → Outreach → Engaged → Meeting Booked. Terminal stage summary row below. Stage-conditional card rendering with temperature badges, Atlas build status, and product links. Header shows total pipeline value and lead count.
 
-**Pipeline Detail** (`/pipeline/[id]`) — Single lead view with enrichment data, outreach timeline, review actions, stage transitions, and "Send to Hermes" button.
+**Pipeline Detail** (`/pipeline/[id]`) — Single lead view with enrichment data, Atlas Delivery card (product type, brief sent date, delivery date, demo website/chatbot links), Engagement card (temperature badge, engagement score), outreach timeline, review actions, stage transitions, and "Send to Hermes" button.
 
-**Pipeline stages:** `discovery` → `enrichment` → `human_review` → `outreach` → `engaged` → `meeting_booked` → `meeting_completed` → `proposal_sent` → `won` / `lost` / `disqualified`
+**Pipeline stages:** `discovery` → `enrichment` → `atlas_build` → `product_ready` → `human_review` → `outreach` → `engaged` → `meeting_booked` → `meeting_completed` → `proposal_sent` → `won` / `lost` / `disqualified`
 
 **Fleet** (`/fleet`) — Merged agents + office page with Grid/Topology toggle:
 - **Grid view:** Agent cards showing emoji, name, type, status badge, model, last seen, and active operations. Operations link directly to `/operations/[id]`.
@@ -192,6 +192,8 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - `GET/POST/PATCH /api/agent/pipeline` — Pipeline lead CRUD. Auth via `Authorization: Bearer <AGENT_API_KEY>`. Agents cannot move leads to `won`, `lost`, or `disqualified` (403). Default stage: `discovery`
 - `POST /api/agent/notify` — Human-triggered. Sends a contextual prompt to Hermes via OpenClaw
 - `GET /api/pipeline/funnel` — Lead counts per stage
+- `POST /api/pipeline/atlas-delivery` — Webhook for Atlas to report demo build completion. Body: `{ lead_id, website_url?, chatbot_url? }`. Moves lead to `product_ready` stage.
+- `POST /api/webhooks/email-tracking` — Email engagement tracking webhook. Body: `{ lead_id, event: "open"|"click"|"reply", reply_sentiment? }`. Updates engagement score and lead temperature.
 
 ### Review Queue
 - `GET/POST /api/review-queue` — List pending items (with lead + agent joins) / create review item
@@ -227,7 +229,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - `GET /api/search` — Full-text search across agents + pipeline leads (min 2 chars)
 
 ### Agent API (for Hermes + sub-agents)
-- `GET/POST/PATCH /api/agent/pipeline` — Pipeline lead CRUD. Auth via `Authorization: Bearer <AGENT_API_KEY>`. Agents cannot move leads to `won` or `lost` (403 — only humans can close deals). Agents CAN disqualify. Stage order: discovery → enrichment → human_review → outreach → engaged → meeting_booked → meeting_completed → proposal_sent → won/lost/disqualified. POST accepts enrichment fields: icp_score, industry, employee_count, trigger_event.
+- `GET/POST/PATCH /api/agent/pipeline` — Pipeline lead CRUD. Auth via `Authorization: Bearer <AGENT_API_KEY>`. Agents cannot move leads to `won` or `lost` (403 — only humans can close deals). Agents CAN disqualify. Stage order: discovery → enrichment → atlas_build → product_ready → human_review → outreach → engaged → meeting_booked → meeting_completed → proposal_sent → won/lost/disqualified. POST accepts enrichment fields: icp_score, industry, employee_count, trigger_event. PATCH accepts: atlas_website_url, atlas_chatbot_url, product_type, lead_temperature, engagement_score.
 - `POST /api/agent/notify` — Human-triggered. Sends a contextual prompt to Hermes via `openclaw agent`. Used by "Send to Hermes" button on pipeline detail page. Only supports `type: "pipeline"`
 
 ---
