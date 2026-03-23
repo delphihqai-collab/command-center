@@ -18,7 +18,7 @@ export async function login(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect("/war-room");
+  redirect("/");
 }
 
 export async function logout() {

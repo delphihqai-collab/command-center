@@ -33,7 +33,7 @@ export function FleetGrid({ agents }: { agents: AgentNode[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {agents.map((agent) => (
-        <Link key={agent.id} href={`/agents/${agent.slug}`}>
+        <Link key={agent.id} href={`/fleet/${agent.slug}`}>
           <Card className="h-full border-zinc-800 bg-zinc-900 transition-colors hover:border-zinc-700">
             <CardContent className="p-4">
               <div className="flex items-start justify-between">

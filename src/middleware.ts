@@ -57,7 +57,7 @@ export async function middleware(request: NextRequest) {
   // If authenticated and on login page, redirect to command
   if (user && request.nextUrl.pathname.startsWith("/login")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/command";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 

@@ -111,7 +111,7 @@ export function CommandPalette() {
                 {results.agents.map((agent) => (
                   <button
                     key={agent.id}
-                    onClick={() => navigate(`/agents/${agent.slug}`)}
+                    onClick={() => navigate(`/fleet/${agent.slug}`)}
                     className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
                   >
                     <Bot className="h-3.5 w-3.5 text-emerald-400" />

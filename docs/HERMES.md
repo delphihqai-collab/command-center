@@ -12,7 +12,7 @@ You don't interact with Mission Control directly. You interact with OpenClaw. Bu
 
 ### Communication Hierarchy — Hybrid Topology
 
-**Strategic layer: Delphi → Hermes → Sub-agents.** Delphi communicates with you (Hermes) through Mission Control's Command page or Discord. Commands sent from the Command page are delivered via `openclaw agent --agent main --message "..." --json`. All commands and responses are logged as `war_room_activity` entries for full visibility.
+**Strategic layer: Delphi → Hermes → Sub-agents.** Delphi communicates with you (Hermes) through Mission Control's Home page Quick Actions or the floating Hermes Chat drawer. Commands sent from Quick Actions are delivered via `openclaw agent --agent main --message "..." --json`. All commands and responses are logged as `war_room_activity` entries for full visibility.
 
 **Operational layer: Peer-to-peer channels.** Workers can query specialists directly for operational tasks without routing through Hermes. For example, the AE can ask Legal for a contract review directly, or the SDR can query Market Intelligence for prospect research. These direct channels are defined in the `team_topology` table and visualized on the Fleet page.
 
@@ -105,78 +105,57 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 
 | Page | Primary Source | Notes |
 |------|---------------|-------|
-| Command, Operations, Pipeline, Fleet, Templates | Supabase | Standard CRUD |
-| Command chat | Supabase + OpenClaw CLI | Messages via `openclaw agent`, logged in `war_room_activity` |
-| Fleet (Topology) | Supabase | `team_topology` + `agent_comms` for visualization |
-| Sessions | OpenClaw CLI (`openclaw sessions`) | Supabase `agents` table for metadata fallback |
-| Memory | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/*/memory/` |
-| Workspace Files | Filesystem (`/api/agents/[id]/workspace`) | Reads/writes SOUL.md, IDENTITY.md, etc. |
-| Gateway Config | Gateway API (`localhost:18789/config`) | Read-only config viewer |
-| Cron | OpenClaw CLI (`openclaw cron list --json`) | Jobs + run state from CLI |
-| Costs | OpenClaw CLI + Filesystem | Cron run JSONL files + live sessions CLI |
-| Logs | journalctl + Supabase | System logs from journald + `agent_logs` table |
-| Audit | Supabase (`audit_log`) | Immutable append-only trail |
-| Webhooks, Alerts, Integrations | Supabase | Standard CRUD |
-| Settings | Supabase (`system_config`) | Key-value config store |
+| Home | Supabase | KPIs, pipeline, agents, activity, review queue |
+| Home Quick Actions | OpenClaw CLI | Commands sent via `openclaw agent` |
+| Pipeline | Supabase | Pipeline leads CRUD, drag-drop stage transitions |
+| Fleet (Overview) | Supabase | `agents` + `war_room_agents` for operations |
+| Fleet (Sessions) | OpenClaw CLI | `openclaw sessions --all-agents --json` |
+| Fleet (Costs) | Filesystem + CLI | `~/.openclaw/cron/runs/*.jsonl` + live sessions CLI |
+| Fleet Agent Detail | Supabase + Filesystem | Agent data + workspace files |
+| System (Scheduler) | OpenClaw CLI | `openclaw cron list --json` |
+| System (Logs) | journalctl + Supabase | System logs from journald + `agent_logs` table |
+| System (Memory) | Filesystem (`/api/memory`) | Reads `~/.openclaw/workspace/*/memory/` |
+| System (Webhooks) | Supabase | Standard CRUD |
+| System (Audit) | Supabase (`audit_log`) | Immutable append-only trail |
+| System (Settings) | Supabase (`system_config`) | Key-value config store, agent model config |
+| Hermes Chat Drawer | Supabase + OpenClaw CLI | Messages via `openclaw agent`, logged in `war_room_activity` |
 
 ---
 
 ## Every Page — What It Does
 
-### OPERATE
+### Navigation (4 items)
 
-**Command** (`/command`) — Delphi's primary interface. Three sections:
-- **Quick Actions (9 buttons in 4 groups):** Prospecting (Find Companies, Research Company), Build (Request Atlas Build, Atlas Status), Outreach (Compose Outreach, Launch Outreach), Monitor (Pipeline Report, Team Status, Engagement Report). Each sends the command to Hermes via OpenClaw CLI. After execution, navigates to the Fleet page.
-- **Hermes Chat:** Direct chat with Hermes through the website. Messages are sent via `POST /api/command/send` which calls `openclaw agent --agent main --message "..."`. Both user messages and Hermes responses are logged as `war_room_activity` entries (action: `user_message` / `hermes_response`). Chat shows full history with realtime updates.
-- **Recent Operations:** Compact list of recent operations with status badges, linking to the Operations detail page.
-
-**Operations** (`/operations`) — All operations (war rooms) grouped by status: active, completed, other. Each card shows name, objective, assigned agent count, activity event count, priority badge, and age. Click any operation to see its detail page.
-
-**Operations Detail** (`/operations/[id]`) — Full operation view with:
-- Header with name, objective, status, priority
-- Linked pipeline lead (if any) with deal value
-- Assigned agents with role badges
-- Activity timeline: chronological list of all events — user commands, Hermes responses, agent actions, system events. Each entry shows actor (You/agent name/System), timestamp, action badge, and detail text.
+**Home** (`/`) — Mission control dashboard. Five KPI cards (Active Leads, Pipeline Value, Active Agents, Open Alerts, MTD Cost). Quick Actions (9 buttons in 4 groups: Prospecting, Build, Outreach, Monitor). Pipeline targets with progress bars. Pipeline funnel chart. Review queue showing leads in human_review. Recent leads table. Agent grid with heartbeat status. Activity feed.
 
 **Pipeline** (`/pipeline`) — Commercial pipeline board. 8 visible stage columns: Discovery → Enrichment → Atlas Build → Product Ready → Human Review → Outreach → Engaged → Meeting Booked. Terminal stage summary row below. Stage-conditional card rendering with temperature badges, Atlas build status, and product links. Header shows total pipeline value and lead count.
 
 **Pipeline Detail** (`/pipeline/[id]`) — Single lead view with enrichment data, Atlas Delivery card (product type, brief sent date, delivery date, demo website/chatbot links), Engagement card (temperature badge, engagement score), outreach timeline, review actions, stage transitions, and "Send to Hermes" button.
 
-**Pipeline stages:** `discovery` → `enrichment` → `atlas_build` → `product_ready` → `human_review` → `outreach` → `engaged` → `meeting_booked` → `meeting_completed` → `proposal_sent` → `won` / `lost` / `disqualified`
+**Fleet** (`/fleet`) — Tabbed view with Overview, Sessions, and Costs:
+- **Overview:** Agent cards showing name, type, status badge, model, last seen, and active operations. Links to `/fleet/[slug]` for agent detail.
+- **Sessions:** Live session monitor via `openclaw sessions --all-agents --json`. Shows agent, session key, model, context usage, cost. Auto-refreshes every 30s.
+- **Costs:** Token cost dashboard. KPI cards (Today, This Week, This Month, All Time). Agent breakdown table (input/output tokens, cost). Cost trend chart (per-agent daily costs over time). Data from cron run JSONL files + live sessions CLI.
 
-**Fleet** (`/fleet`) — Merged agents + office page with Grid/Topology toggle:
-- **Grid view:** Agent cards showing emoji, name, type, status badge, model, last seen, and active operations. Operations link directly to `/operations/[id]`.
-- **Topology view:** Interactive SVG hub-and-spoke visualization with Hermes at center, 7 sub-agents in a ring. Shows hierarchical connections (solid) + peer-to-peer direct channels (dashed cyan curves). Animated pulses, hover tooltips, status dots.
+**Fleet Agent Detail** (`/fleet/[slug]`) — Full agent profile. Identity card, workspace file editor (tabbed with Preview/Code toggle), pipeline leads, comms, reports, activity log. Back link goes to `/fleet`.
 
-**Agent Detail** (`/agents/[slug]`) — Full agent profile. Identity card, workspace file editor (tabbed with Preview/Code toggle), pipeline leads, comms, reports, activity log. Back link goes to `/fleet`.
+**Fleet Agent Soul** (`/fleet/[slug]/soul`) — SOUL.md editor.
 
-### MONITOR
+**System** (`/system`) — Tabbed view with Scheduler, Logs, Memory, Webhooks, Audit Log, and Settings:
+- **Scheduler:** Cron jobs from `openclaw cron list --json`, grouped by agent with filter pills.
+- **Logs:** Unified log viewer with agent dropdown. Fetches from `agent_logs` + journalctl.
+- **Memory:** Split-panel file browser with Preview/Code toggle. Agent selector as horizontal pill tabs.
+- **Webhooks:** CRUD webhooks with test button and "New Webhook" dialog.
+- **Audit Log:** Immutable audit trail table with timestamp, agent/user, action, entity, changes.
+- **Settings:** Sub-tabs for Account, Scheduler, Agents, Data Retention.
 
-**Sessions** (`/sessions`) — Live session monitor via `openclaw sessions --all-agents --json`. Shows agent, session key, model, context usage, cost.
+### Global Components
 
-**Logs** (`/logs`) — Unified log viewer. Agent selectable from dropdown. Fetches from `agent_logs` (Supabase) + journal entries via `/api/logs/journal`.
+**Hermes Chat Drawer** — Floating action button (indigo, bottom-right) opens a sliding drawer from the right. Direct chat with Hermes via OpenClaw CLI. Quick actions dispatch `open-hermes` CustomEvent to auto-open the drawer after sending a command.
 
-### CONFIGURE
+**Fleet Mode Toggle** — In the top header bar. Three-state toggle: Active (emerald), Paused (amber), Stopped (red). Reads/writes `fleet_mode` key in `system_config` table via `GET/PUT /api/fleet/mode`.
 
-**Cron** (`/cron`) — Scheduler UI. Reads live data via `openclaw cron list --json`. Jobs grouped by agent with filter pills. Each job card shows schedule, session target, last run, next run.
-
-**Templates** (`/templates`) — Outreach message template CRUD. Grid layout with category tabs (all/outreach/follow_up/meeting/proposal/nurture). Each card shows: name, channel icon, category badge, body preview, {variables}, performance stats (times used, open rate, reply rate). Create dialog with variable auto-detection from {placeholder} syntax.
-
-**Memory** (`/memory`) — Split-panel layout. Left: file browser sidebar. Right: content with Preview/Code toggle. Agent selector uses horizontal pill-style tabs.
-
-**Webhooks** (`/webhooks`) — CRUD webhooks. Test button sends sample payload. "New Webhook" dialog with name, URL, secret, event checkboxes.
-
-**Alerts** (`/alerts`) — Active unresolved alerts. Shows: rule name + description, severity, created_at.
-
-### ADMIN
-
-**Audit Log** (`/audit-log`) — Immutable audit trail. Filters: agent/user, action, date range.
-
-**Gateway** (`/gateway`) — Read-only gateway config viewer.
-
-**Integrations** (`/integrations`) — Third-party connections. Grid layout.
-
-**Settings** (`/settings`) — Tabs: Account, Scheduler, Agents, Data Retention.
+**Command Palette** — Cmd+K global search across agents and pipeline leads.
 
 ---
 
@@ -227,6 +206,7 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 - `GET /api/integrations` + `POST` — Third-party integration CRUD
 - `GET /api/status` — System health (active agents, active pipeline leads, open alerts)
 - `GET /api/search` — Full-text search across agents + pipeline leads (min 2 chars)
+- `GET/PUT /api/fleet/mode` — Fleet mode toggle (active/paused/stopped). Reads/writes `fleet_mode` key in `system_config` table.
 
 ### Agent API (for Hermes + sub-agents)
 - `GET/POST/PATCH /api/agent/pipeline` — Pipeline lead CRUD. Auth via `Authorization: Bearer <AGENT_API_KEY>`. Agents cannot move leads to `won` or `lost` (403 — only humans can close deals). Agents CAN disqualify. Stage order: discovery → enrichment → atlas_build → product_ready → human_review → outreach → engaged → meeting_booked → meeting_completed → proposal_sent → won/lost/disqualified. POST accepts enrichment fields: icp_score, industry, employee_count, trigger_event. PATCH accepts: atlas_website_url, atlas_chatbot_url, product_type, lead_temperature, engagement_score.
@@ -279,39 +259,23 @@ Mission Control doesn't get all its data from one place. Some comes from Supabas
 src/
 ├── app/
 │   ├── (app)/              ← Protected routes (require auth)
-│   │   ├── command/          Command center — chat with Hermes + quick actions
-│   │   │   └── _components/
-│   │   │       ├── hermes-chat.tsx    ← Real-time chat with Hermes via OpenClaw
-│   │   │       └── quick-actions.tsx  ← 5 quick-action buttons → Hermes
-│   │   ├── operations/       Operation list + detail pages
-│   │   │   └── [id]/page.tsx          ← Per-operation activity timeline
-│   │   ├── pipeline/         Commercial pipeline board (6 stage columns)
+│   │   ├── page.tsx          Home dashboard (KPIs, quick actions, pipeline, agents)
+│   │   ├── pipeline/         Commercial pipeline board (11 stages, drag-drop)
 │   │   │   └── _components/  ← Board, cards, enrichment, sequences, review, stage actions
-│   │   ├── fleet/            Unified agent overview (merged agents + office)
-│   │   │   └── _components/
-│   │   │       ├── fleet-view.tsx     ← Grid/Topology toggle wrapper
-│   │   │       └── fleet-grid.tsx     ← Agent cards with operations
-│   │   ├── agents/           Agent list (accessible via fleet)
-│   │   ├── agents/[slug]/    Agent detail + workspace editor
-│   │   ├── office/           Topology visualizer (reused by fleet)
-│   │   ├── war-room/         Legacy (redirects to /command)
-│   │   ├── costs/            Token/cost tracking
-│   │   ├── sessions/         Session monitoring (OpenClaw CLI)
-│   │   ├── memory/           Memory file browser (filesystem)
-│   │   ├── logs/             Unified log viewer
-│   │   ├── cron/             Scheduled task management
-│   │   ├── templates/        Outreach template CRUD
-│   │   ├── alerts/           Alert rules + events
-│   │   ├── webhooks/         Webhook CRUD + delivery history
-│   │   ├── integrations/     Third-party connections
-│   │   ├── audit-log/        Immutable audit trail
-│   │   ├── gateway/          Gateway config panel
-│   │   └── settings/         App settings
+│   │   ├── fleet/            Agent fleet (Overview/Sessions/Costs tabs)
+│   │   │   ├── _components/
+│   │   │   │   ├── fleet-tabs.tsx     ← Tab switcher (URL search params)
+│   │   │   │   └── fleet-grid.tsx     ← Agent cards with operations
+│   │   │   └── [slug]/       Agent detail + workspace editor + soul editor
+│   │   └── system/           System management (Scheduler/Logs/Memory/Webhooks/Audit/Settings tabs)
+│   │       └── _components/
+│   │           └── system-tabs.tsx    ← Tab switcher (URL search params)
 │   ├── (auth)/             ← Login page + server actions
 │   └── api/                ← Route handlers
 │       ├── command/send/     Send chat message to Hermes via OpenClaw CLI
 │       ├── agent/            Agent API (pipeline, notify) — Bearer token auth
 │       ├── agents/           Agent detail, workspace files, soul, heartbeat, comms
+│       ├── fleet/mode/       Fleet mode toggle (active/paused/stopped)
 │       ├── review-queue/     Review queue CRUD + decision processing
 │       ├── daily-targets/    Daily pipeline targets upsert
 │       ├── pipeline/funnel/  Lead counts per stage
@@ -326,13 +290,14 @@ src/
 │       └── status/           System health endpoint
 ├── components/
 │   ├── ui/                 ← shadcn/ui primitives (do not edit)
-│   ├── sidebar.tsx           Navigation (4 groups: OPERATE, MONITOR, CONFIGURE, ADMIN)
+│   ├── home/               ← Home page components (kpi-cards, quick-actions, etc.)
+│   ├── sidebar.tsx           Navigation (4 items: Home, Pipeline, Fleet, System)
+│   ├── hermes-drawer.tsx     Floating Hermes chat (FAB + sliding drawer)
+│   ├── fleet-mode-toggle.tsx Three-state fleet mode control
 │   ├── command-palette.tsx   Cmd+K global search
 │   ├── realtime-refresh.tsx  Supabase Realtime listener
-│   ├── realtime-table.tsx    Realtime table wrapper
 │   ├── status-badge.tsx      50+ status → color mappings
-│   ├── load-more-button.tsx  Cursor pagination button
-│   └── theme-toggle.tsx      Dark/light toggle
+│   └── load-more-button.tsx  Cursor pagination button
 ├── lib/
 │   ├── supabase/server.ts    Server-side client
 │   ├── supabase/client.ts    Browser client
@@ -345,7 +310,7 @@ src/
 │   ├── schemas.ts            Zod validation schemas
 │   ├── pagination.ts         Cursor-based pagination helpers
 │   └── utils.ts              cn() class name merger
-├── middleware.ts            ← Auth guard + login redirect to /command
+├── middleware.ts            ← Auth guard + login redirect to /
 └── globals.css             ← Tailwind v4 + cursor:pointer on all interactive elements
 ```
 
